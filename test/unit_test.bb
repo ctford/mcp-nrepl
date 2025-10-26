@@ -74,18 +74,6 @@
       (is (nil? (get result "id")))
       (is (= "Error" (get-in result ["error" "message"]))))))
 
-;; Test parse-args function (pure)
-(deftest test-parse-args
-  (testing "No arguments"
-    (is (nil? (mcp-nrepl/parse-args []))))
-  
-  (testing "Valid port argument"
-    (is (= "1667" (mcp-nrepl/parse-args ["--nrepl-port" "1667"]))))
-  
-  (testing "Help argument exits"
-    ;; This test would cause exit, so we can't test it in unit tests
-    ;; Should be tested in e2e tests instead
-    ))
 
 ;; Test constants and data structures
 (deftest test-constants

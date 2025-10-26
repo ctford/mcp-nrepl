@@ -4,6 +4,7 @@
   (:require [clojure.java.io :as io]
             [cheshire.core :as json]
             [clojure.string :as str]
+            [clojure.tools.cli :as cli]
             [bencode.core :as bencode]))
 
 ;; MCP Protocol constants
@@ -203,65 +204,67 @@
     (catch Exception e
       (handle-error nil (.getMessage e)))))
 
-(defn show-help []
-  (println "mcp-nrepl - MCP server bridge to nREPL")
-  (println "")
-  (println "Usage: mcp-nrepl.bb [OPTIONS]")
-  (println "")
-  (println "Options:")
-  (println "  --nrepl-port <port>   Connect to nREPL server on specified port")
-  (println "  --help                Show this help message")
-  (println "")
-  (println "If no port is specified, reads from .nrepl-port file in current directory.")
-  (println "")
-  (println "The script accepts MCP JSON-RPC messages on stdin and provides:")
-  (println "  - eval-clojure tool for evaluating Clojure code via nREPL"))
+(def cli-options
+  [["-p" "--nrepl-port PORT" "Connect to nREPL server on specified port"
+    :parse-fn parse-port
+    :validate [integer? "Must be a valid port number"]]
+   ["-h" "--help" "Show this help message"]])
 
-(defn parse-args [args]
-  (loop [args args
-         port nil]
+(defn usage [options-summary]
+  (->> ["mcp-nrepl - MCP server bridge to nREPL"
+        ""
+        "Usage: mcp-nrepl.bb [OPTIONS]"
+        ""
+        "Options:"
+        options-summary
+        ""
+        "If no port is specified, reads from .nrepl-port file in current directory."
+        ""
+        "The script accepts MCP JSON-RPC messages on stdin and provides:"
+        "  - eval-clojure tool for evaluating Clojure code via nREPL"]
+       (str/join \newline)))
+
+(defn error-msg [errors]
+  (str "The following errors occurred while parsing your command:\n\n"
+       (str/join \newline errors)))
+
+(defn validate-args [args]
+  (let [{:keys [options arguments errors summary]} (cli/parse-opts args cli-options)]
     (cond
-      (empty? args) port
+      (:help options)
+      {:exit-message (usage summary) :ok? true}
       
-      (or (= (first args) "--help") (= (first args) "-h"))
-      (do
-        (show-help)
-        (System/exit 0))
-      
-      (= (first args) "--nrepl-port")
-      (if (second args)
-        (recur (drop 2 args) (second args))
-        (do
-          (log-error "Missing port number after --nrepl-port")
-          (System/exit 1)))
+      errors
+      {:exit-message (error-msg errors)}
       
       :else
-      (do
-        (log-error "Unknown argument: %s" (first args))
-        (show-help)
-        (System/exit 1)))))
+      {:options options})))
 
 (defn main [& args]
-  (try
-    ;; Parse command line arguments
-    (some-> (parse-args args)
-            (parse-port)
-            (->> (swap! state assoc :nrepl-port)))
-    
-    (loop []
-      (when-let [line (read-line)]
-        (let [response (process-message line)]
-          (println (json/generate-string response))
-          (flush))
-        (recur)))
-    (catch Exception e
-      (log-error "Fatal error: %s" (.getMessage e))
-      (System/exit 1))
-    (finally
-      (when-let [socket (:nrepl-socket @state)]
-        (try
-          (.close socket)
-          (catch Exception _))))))
+  (let [{:keys [options exit-message ok?]} (validate-args args)]
+    (if exit-message
+      (do
+        (println exit-message)
+        (System/exit (if ok? 0 1)))
+      (try
+        ;; Set nREPL port from options if provided
+        (when-let [port (:nrepl-port options)]
+          (swap! state assoc :nrepl-port port))
+        
+        (loop []
+          (when-let [line (read-line)]
+            (let [response (process-message line)]
+              (println (json/generate-string response))
+              (flush))
+            (recur)))
+        (catch Exception e
+          (log-error "Fatal error: %s" (.getMessage e))
+          (System/exit 1))
+        (finally
+          (when-let [socket (:nrepl-socket @state)]
+            (try
+              (.close socket)
+              (catch Exception _))))))))
 
 ;; Entry point
 (when (= *file* (System/getProperty "babashka.file"))
