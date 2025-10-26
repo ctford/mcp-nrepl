@@ -36,7 +36,6 @@
     (try
       (-> ".nrepl-port"
           slurp
-          str/trim
           parse-port)
       (catch Exception e
         (log-error "Failed to read .nrepl-port: %s" (.getMessage e))
