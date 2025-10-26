@@ -108,6 +108,105 @@
           (throw (Exception. "Failed to send eval message to nREPL"))))
       (throw (Exception. "No nREPL connection available")))))
 
+;; nREPL Resource Operations
+(defn get-doc [symbol]
+  (ensure-nrepl-connection)
+  (let [{:keys [nrepl-socket session-id]} @state]
+    (if nrepl-socket
+      (let [socket nrepl-socket
+            doc-msg {"op" "eval"
+                     "code" (str "(clojure.repl/doc " symbol ")")
+                     "session" session-id
+                     "id" (str (java.util.UUID/randomUUID))}]
+        (when (send-nrepl-message socket doc-msg)
+          (let [responses (loop [responses []]
+                           (if-let [response (read-nrepl-response socket)]
+                             (let [updated-responses (conj responses response)]
+                               (if (contains? response "status")
+                                 updated-responses
+                                 (recur updated-responses)))
+                             responses))
+                decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))]
+            (->> responses
+                 (keep #(get % "out"))
+                 (map decode-if-bytes)
+                 (str/join "")
+                 str/trim))))
+      nil)))
+
+(defn get-source [symbol]
+  (ensure-nrepl-connection)
+  (let [{:keys [nrepl-socket session-id]} @state]
+    (if nrepl-socket
+      (let [socket nrepl-socket
+            source-msg {"op" "eval"
+                        "code" (str "(clojure.repl/source " symbol ")")
+                        "session" session-id
+                        "id" (str (java.util.UUID/randomUUID))}]
+        (when (send-nrepl-message socket source-msg)
+          (let [responses (loop [responses []]
+                           (if-let [response (read-nrepl-response socket)]
+                             (let [updated-responses (conj responses response)]
+                               (if (contains? response "status")
+                                 updated-responses
+                                 (recur updated-responses)))
+                             responses))
+                decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))]
+            (->> responses
+                 (keep #(get % "out"))
+                 (map decode-if-bytes)
+                 (str/join "")
+                 str/trim))))
+      nil)))
+
+(defn get-session-vars []
+  (ensure-nrepl-connection)
+  (let [{:keys [nrepl-socket session-id]} @state]
+    (if nrepl-socket
+      (let [socket nrepl-socket
+            vars-msg {"op" "eval"
+                      "code" "(keys (ns-publics *ns*))"
+                      "session" session-id
+                      "id" (str (java.util.UUID/randomUUID))}]
+        (when (send-nrepl-message socket vars-msg)
+          (let [responses (loop [responses []]
+                           (if-let [response (read-nrepl-response socket)]
+                             (let [updated-responses (conj responses response)]
+                               (if (contains? response "status")
+                                 updated-responses
+                                 (recur updated-responses)))
+                             responses))
+                decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))]
+            (->> responses
+                 (keep #(get % "value"))
+                 (map decode-if-bytes)
+                 first))))
+      nil)))
+
+(defn get-session-namespaces []
+  (ensure-nrepl-connection)
+  (let [{:keys [nrepl-socket session-id]} @state]
+    (if nrepl-socket
+      (let [socket nrepl-socket
+            ns-msg {"op" "eval"
+                    "code" "(map str (all-ns))"
+                    "session" session-id
+                    "id" (str (java.util.UUID/randomUUID))}]
+        (when (send-nrepl-message socket ns-msg)
+          (let [responses (loop [responses []]
+                           (if-let [response (read-nrepl-response socket)]
+                             (let [updated-responses (conj responses response)]
+                               (if (contains? response "status")
+                                 updated-responses
+                                 (recur updated-responses)))
+                             responses))
+                decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))]
+            (->> responses
+                 (keep #(get % "value"))
+                 (map decode-if-bytes)
+                 first))))
+      nil)))
+
 ;; MCP Protocol handlers
 (defn handle-initialize [params]
   (let [client-version (get params "protocolVersion")
@@ -167,6 +266,61 @@
        "content" [{"type" "text"
                   "text" (str "Unknown tool: " tool-name)}]})))
 
+(defn handle-resources-list []
+  {"resources"
+   [{"uri" "clojure://session/vars"
+     "name" "Session Variables"
+     "description" "Currently defined variables in the REPL session"
+     "mimeType" "application/json"}
+    {"uri" "clojure://session/namespaces"  
+     "name" "Session Namespaces"
+     "description" "Currently loaded namespaces in the REPL session"
+     "mimeType" "application/json"}]})
+
+(defn handle-resources-read [params]
+  (let [uri (get params "uri")]
+    (cond
+      (str/starts-with? uri "clojure://doc/")
+      (let [symbol (subs uri 14)] ; Remove "clojure://doc/"
+        (if-let [doc-content (get-doc symbol)]
+          {"contents" [{"uri" uri
+                       "mimeType" "text/plain"
+                       "text" doc-content}]}
+          {"contents" [{"uri" uri
+                       "mimeType" "text/plain"
+                       "text" (str "No documentation found for: " symbol)}]}))
+      
+      (str/starts-with? uri "clojure://source/")
+      (let [symbol (subs uri 17)] ; Remove "clojure://source/"
+        (if-let [source-content (get-source symbol)]
+          {"contents" [{"uri" uri
+                       "mimeType" "text/clojure"
+                       "text" source-content}]}
+          {"contents" [{"uri" uri
+                       "mimeType" "text/plain"
+                       "text" (str "No source found for: " symbol)}]}))
+      
+      (= uri "clojure://session/vars")
+      (if-let [vars (get-session-vars)]
+        {"contents" [{"uri" uri
+                     "mimeType" "application/json"
+                     "text" vars}]}
+        {"contents" [{"uri" uri
+                     "mimeType" "application/json"
+                     "text" "[]"}]})
+      
+      (= uri "clojure://session/namespaces")
+      (if-let [namespaces (get-session-namespaces)]
+        {"contents" [{"uri" uri
+                     "mimeType" "application/json"
+                     "text" namespaces}]}
+        {"contents" [{"uri" uri
+                     "mimeType" "application/json"
+                     "text" "[]"}]})
+      
+      :else
+      (throw (Exception. (str "Unknown resource URI: " uri))))))
+
 (defn handle-request [request]
   (let [method (get request "method")
         params (get request "params")
@@ -181,6 +335,8 @@
             "initialize" (handle-initialize params)
             "tools/list" (handle-tools-list)
             "tools/call" (handle-tools-call params)
+            "resources/list" (handle-resources-list)
+            "resources/read" (handle-resources-read params)
             (throw (Exception. (str "Unknown method: " method))))]
       
       {"jsonrpc" "2.0"
