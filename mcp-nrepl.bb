@@ -1,7 +1,7 @@
 #!/usr/bin/env bb
 
 (ns mcp-nrepl
-  (:require [clojure.java.io :as io]
+  (:require [babashka.fs :as fs]
             [cheshire.core :as json]
             [clojure.string :as str]
             [clojure.tools.cli :as cli]
@@ -23,17 +23,16 @@
     (println (str "[ERROR] " (apply format msg args)))))
 
 (defn parse-port [port-str]
-  (try
-    (Integer/parseInt (str/trim port-str))
-    (catch Exception e
-      (log-error "Invalid port number: %s" port-str)
-      nil)))
+  (when port-str
+    (or (parse-long (str/trim port-str))
+        (do (log-error "Invalid port number: %s" port-str)
+            nil))))
 
 (defn read-nrepl-port [& [provided-port]]
   (cond
     provided-port (parse-port provided-port)
     
-    (.exists (io/file ".nrepl-port"))
+    (fs/exists? ".nrepl-port")
     (try
       (-> ".nrepl-port"
           slurp
