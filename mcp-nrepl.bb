@@ -13,21 +13,38 @@
 ;; Global state
 (def state (atom {:nrepl-socket nil
                   :session-id nil
-                  :initialized false}))
+                  :initialized false
+                  :nrepl-port nil}))
 
 ;; Utility functions
 (defn log-error [msg & args]
   (binding [*out* *err*]
     (println (str "[ERROR] " (apply format msg args)))))
 
-(defn read-nrepl-port []
+(defn parse-port [port-str]
   (try
-    (-> ".nrepl-port"
-        slurp
-        str/trim
-        Integer/parseInt)
+    (Integer/parseInt (str/trim port-str))
     (catch Exception e
-      (log-error "Failed to read .nrepl-port: %s" (.getMessage e))
+      (log-error "Invalid port number: %s" port-str)
+      nil)))
+
+(defn read-nrepl-port [& [provided-port]]
+  (cond
+    provided-port (parse-port provided-port)
+    
+    (.exists (io/file ".nrepl-port"))
+    (try
+      (-> ".nrepl-port"
+          slurp
+          str/trim
+          parse-port)
+      (catch Exception e
+        (log-error "Failed to read .nrepl-port: %s" (.getMessage e))
+        nil))
+    
+    :else
+    (do
+      (log-error "No nREPL port specified. Use --nrepl-port <port> or create .nrepl-port file")
       nil)))
 
 (defn connect-to-nrepl [port]
@@ -60,7 +77,7 @@
 
 (defn ensure-nrepl-connection []
   (when-not (:nrepl-socket @state)
-    (when-let [port (read-nrepl-port)]
+    (when-let [port (or (:nrepl-port @state) (read-nrepl-port))]
       (when-let [socket (connect-to-nrepl port)]
         (swap! state assoc :nrepl-socket socket)
         
@@ -189,8 +206,55 @@
     (catch Exception e
       (handle-error nil (.getMessage e)))))
 
-(defn main []
+(defn show-help []
+  (println "mcp-nrepl - MCP server bridge to nREPL")
+  (println "")
+  (println "Usage: mcp-nrepl.bb [OPTIONS]")
+  (println "")
+  (println "Options:")
+  (println "  --nrepl-port <port>   Connect to nREPL server on specified port")
+  (println "  --nrepl-port=<port>   Alternative syntax for port specification")
+  (println "  --help                Show this help message")
+  (println "")
+  (println "If no port is specified, reads from .nrepl-port file in current directory.")
+  (println "")
+  (println "The script accepts MCP JSON-RPC messages on stdin and provides:")
+  (println "  - eval-clojure tool for evaluating Clojure code via nREPL"))
+
+(defn parse-args [args]
+  (loop [args args
+         port nil]
+    (cond
+      (empty? args) port
+      
+      (or (= (first args) "--help") (= (first args) "-h"))
+      (do
+        (show-help)
+        (System/exit 0))
+      
+      (= (first args) "--nrepl-port")
+      (if (second args)
+        (recur (drop 2 args) (second args))
+        (do
+          (log-error "Missing port number after --nrepl-port")
+          (System/exit 1)))
+      
+      (str/starts-with? (first args) "--nrepl-port=")
+      (recur (rest args) (subs (first args) 13))
+      
+      :else
+      (do
+        (log-error "Unknown argument: %s" (first args))
+        (show-help)
+        (System/exit 1)))))
+
+(defn main [& args]
   (try
+    ;; Parse command line arguments
+    (when-let [port (parse-args args)]
+      (when-let [parsed-port (parse-port port)]
+        (swap! state assoc :nrepl-port parsed-port)))
+    
     (loop []
       (when-let [line (read-line)]
         (let [response (process-message line)]
@@ -208,4 +272,4 @@
 
 ;; Entry point
 (when (= *file* (System/getProperty "babashka.file"))
-  (main))
+  (apply main *command-line-args*))
