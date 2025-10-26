@@ -34,9 +34,8 @@ The project has two types of tests:
 ```
 
 **Fast, isolated tests** (~1 second execution):
-- ✅ 37 test assertions covering pure functions only
-- ✅ No side effects, I/O, or state mutations  
-- ✅ Tests: argument parsing, MCP handlers, data transformation, error builders
+- ✅ Pure functions only - no side effects, I/O, or state mutations  
+- ✅ Tests: MCP handlers, data transformation, error builders
 - ✅ Perfect for rapid development feedback
 
 ### End-to-End Tests (Full Integration) 
@@ -51,6 +50,27 @@ The project has two types of tests:
 - ✅ Verifies error handling with real exceptions
 - ✅ Automatic cleanup of processes and temporary files
 - ✅ Colorized output with clear success/failure indicators
+
+**Multi-Backend Testing:**
+```bash
+# Auto-start Babashka server (default)
+./run-e2e-test.sh
+
+# Test against external Babashka server
+bb nrepl-server localhost:7890 &
+./run-e2e-test.sh --nrepl-port 7890
+
+# Test against Leiningen server
+lein repl :headless :port 7891 &
+./run-e2e-test.sh --nrepl-port 7891
+
+# Test against Clojure CLI server
+clj -Sdeps '{:deps {nrepl/nrepl {:mvn/version "1.0.0"}}}' -M -e "..." &
+./run-e2e-test.sh --nrepl-port 7892
+
+# Show help
+./run-e2e-test.sh --help
+```
 
 **Example E2E Test Flow:**
 1. `bb nrepl-server` → starts on port 54321
