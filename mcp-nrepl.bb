@@ -75,19 +75,19 @@
       (log-error "Failed to read nREPL response: %s" (.getMessage e))
       nil)))
 
+(defn create-session [socket]
+  (let [clone-msg {"op" "clone" "id" (str (java.util.UUID/randomUUID))}]
+    (when (send-nrepl-message socket clone-msg)
+      (some-> (read-nrepl-response socket)
+              (get "new-session")))))
+
 (defn ensure-nrepl-connection []
   (when-not (:nrepl-socket @state)
-    (when-let [port (or (:nrepl-port @state) (read-nrepl-port))]
-      (when-let [socket (connect-to-nrepl port)]
-        (swap! state assoc :nrepl-socket socket)
-        
-        ;; Create a new session
-        (let [clone-msg {"op" "clone" "id" (str (java.util.UUID/randomUUID))}]
-          (when (send-nrepl-message socket clone-msg)
-            (when-let [response (read-nrepl-response socket)]
-              (when-let [session-id (get response "new-session")]
-                (swap! state assoc :session-id session-id)
-                true))))))))
+    (some-> (or (:nrepl-port @state) (read-nrepl-port))
+            (connect-to-nrepl)
+            (doto (->> (swap! state assoc :nrepl-socket)))
+            (create-session)
+            (->> (swap! state assoc :session-id)))))
 
 (defn eval-clojure-code [code]
   (ensure-nrepl-connection)
@@ -244,9 +244,9 @@
 (defn main [& args]
   (try
     ;; Parse command line arguments
-    (when-let [port (parse-args args)]
-      (when-let [parsed-port (parse-port port)]
-        (swap! state assoc :nrepl-port parsed-port)))
+    (some-> (parse-args args)
+            (parse-port)
+            (->> (swap! state assoc :nrepl-port)))
     
     (loop []
       (when-let [line (read-line)]
