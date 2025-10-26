@@ -213,7 +213,6 @@
   (println "")
   (println "Options:")
   (println "  --nrepl-port <port>   Connect to nREPL server on specified port")
-  (println "  --nrepl-port=<port>   Alternative syntax for port specification")
   (println "  --help                Show this help message")
   (println "")
   (println "If no port is specified, reads from .nrepl-port file in current directory.")
@@ -238,9 +237,6 @@
         (do
           (log-error "Missing port number after --nrepl-port")
           (System/exit 1)))
-      
-      (str/starts-with? (first args) "--nrepl-port=")
-      (recur (rest args) (subs (first args) 13))
       
       :else
       (do
