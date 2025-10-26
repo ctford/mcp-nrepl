@@ -19,13 +19,30 @@ The server must be running before testing the MCP-nREPL bridge functionality.
 
 ## Running Tests
 
-To run the test suite:
+The project has two types of tests:
 
+### Unit Tests (Pure Functions)
 ```bash
-./run-tests.sh
+./run-unit-tests.sh
 ```
 
-This will execute all unit tests in `test/mcp_nrepl_test.bb` using Babashka.
+Tests pure functions only - no side effects, no I/O, no state mutations. Focuses on:
+- Argument parsing functions
+- MCP protocol handlers
+- Data transformation functions
+- Error response builders
+
+### End-to-End Tests (Full Integration)
+```bash
+./run-e2e-test.sh
+```
+
+Complete integration test that:
+- Starts an nREPL server
+- Initializes MCP protocol
+- Defines a Clojure function with `defn`
+- Invokes the defined function
+- Verifies error handling
 
 ## Dependencies
 
@@ -58,9 +75,11 @@ For quick evaluation:
 
 - `mcp-nrepl.bb` - Main MCP-nREPL bridge implementation (executable)
 - `eval-clojure.sh` - Convenience script for command-line evaluation
-- `test/mcp_nrepl_test.bb` - Test suite
+- `test/unit_test.bb` - Pure function unit tests
+- `test/mcp_nrepl_test.bb` - Legacy integration tests (deprecated)
 - `start-nrepl.sh` - Script to start nREPL server
-- `run-tests.sh` - Script to run tests
+- `run-unit-tests.sh` - Script to run pure function tests
+- `run-e2e-test.sh` - Script to run end-to-end integration tests
 
 ## Performance
 
