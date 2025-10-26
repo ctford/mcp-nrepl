@@ -2,7 +2,7 @@
 
 (ns mcp-nrepl
   (:require [clojure.java.io :as io]
-            [clojure.data.json :as json]
+            [cheshire.core :as json]
             [clojure.string :as str]
             [bencode.core :as bencode]))
 
@@ -182,7 +182,7 @@
 
 (defn process-message [line]
   (try
-    (let [request (json/read-str line)]
+    (let [request (json/parse-string line)]
       (if (get request "method")
         (handle-request request)
         (throw (Exception. "Invalid request: missing method"))))
@@ -194,7 +194,7 @@
     (loop []
       (when-let [line (read-line)]
         (let [response (process-message line)]
-          (println (json/write-str response))
+          (println (json/generate-string response))
           (flush))
         (recur)))
     (catch Exception e

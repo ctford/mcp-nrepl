@@ -2,7 +2,7 @@
 
 (ns mcp-nrepl-test
   (:require [clojure.test :refer [deftest is testing run-tests]]
-            [clojure.data.json :as json]
+            [cheshire.core :as json]
             [clojure.string :as str]))
 
 ;; Load the main module for testing
@@ -50,7 +50,7 @@
                            :initialized false}))
 
 (defn parse-response [response-str]
-  (json/read-str response-str))
+  (json/parse-string response-str))
 
 ;; MCP Message Parsing Tests
 (deftest test-valid-initialize-request
@@ -95,7 +95,7 @@
 (deftest test-missing-method-request
   (testing "Request without method should return error"
     (reset-server-state!)
-    (let [response (mcp-nrepl/process-message (json/write-str missing-method-request))]
+    (let [response (mcp-nrepl/process-message (json/generate-string missing-method-request))]
       (is (= "2.0" (get response "jsonrpc")))
       (is (contains? response "error"))
       (is (string? (get-in response ["error" "message"]))))))
@@ -103,7 +103,7 @@
 (deftest test-uninitialized-server
   (testing "Requests to uninitialized server should fail"
     (reset-server-state!)
-    (let [response (mcp-nrepl/process-message (json/write-str valid-tools-list-request))]
+    (let [response (mcp-nrepl/process-message (json/generate-string valid-tools-list-request))]
       (is (= "2.0" (get response "jsonrpc")))
       (is (contains? response "error"))
       (is (str/includes? (get-in response ["error" "message"]) "not initialized")))))
@@ -162,14 +162,14 @@
 (deftest test-message-processing-pipeline
   (testing "Complete message processing pipeline"
     (reset-server-state!)
-    (let [init-json (json/write-str valid-initialize-request)
+    (let [init-json (json/generate-string valid-initialize-request)
           init-response (mcp-nrepl/process-message init-json)]
       (is (= "2.0" (get init-response "jsonrpc")))
       (is (= 1 (get init-response "id")))
       (is (contains? init-response "result"))
       
       ;; Now test tools/list
-      (let [list-json (json/write-str valid-tools-list-request)
+      (let [list-json (json/generate-string valid-tools-list-request)
             list-response (mcp-nrepl/process-message list-json)]
         (is (= "2.0" (get list-response "jsonrpc")))
         (is (= 2 (get list-response "id")))
@@ -180,8 +180,8 @@
     (let [test-data {"jsonrpc" "2.0"
                     "id" 42
                     "result" {"tools" [{"name" "test-tool"}]}}
-          json-str (json/write-str test-data)
-          parsed (json/read-str json-str)]
+          json-str (json/generate-string test-data)
+          parsed (json/parse-string json-str)]
       (is (= test-data parsed)))))
 
 ;; Utility function tests
