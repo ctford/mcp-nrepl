@@ -32,47 +32,63 @@
     (let [params {"protocolVersion" "2024-11-05"
                   "capabilities" {}
                   "clientInfo" {"name" "test" "version" "1.0"}}
-          result (mcp-nrepl/handle-initialize params)]
-      (is (= "2024-11-05" (get result "protocolVersion")))
-      (is (map? (get result "capabilities")))
-      (is (map? (get result "serverInfo")))
-      (is (= "mcp-nrepl" (get-in result ["serverInfo" :name])))))
+          result (mcp-nrepl/handle-initialize params)
+          expected {"protocolVersion" "2024-11-05"
+                    "capabilities" {"tools" {}
+                                    "resources" {}}
+                    "serverInfo" {:name "mcp-nrepl" :version "0.1.0"}}]
+      (is (= expected result))))
   
   (testing "Missing capabilities"
     (let [params {"protocolVersion" "2024-11-05"}
-          result (mcp-nrepl/handle-initialize params)]
-      (is (map? (get result "capabilities")))))
+          result (mcp-nrepl/handle-initialize params)
+          expected {"protocolVersion" "2024-11-05"
+                    "capabilities" {"tools" {}
+                                    "resources" {}}
+                    "serverInfo" {:name "mcp-nrepl" :version "0.1.0"}}]
+      (is (= expected result))))
   
   (testing "Missing protocol version"
     (let [params {"capabilities" {}}
-          result (mcp-nrepl/handle-initialize params)]
-      (is (= "2024-11-05" (get result "protocolVersion"))))))
+          result (mcp-nrepl/handle-initialize params)
+          expected {"protocolVersion" "2024-11-05"
+                    "capabilities" {"tools" {}
+                                    "resources" {}}
+                    "serverInfo" {:name "mcp-nrepl" :version "0.1.0"}}]
+      (is (= expected result)))))
 
 ;; Test handle-tools-list function (pure)
 (deftest test-handle-tools-list
   (testing "Tools list structure"
-    (let [result (mcp-nrepl/handle-tools-list)]
-      (is (vector? (get result "tools")))
-      (is (= 1 (count (get result "tools"))))
-      (let [tool (first (get result "tools"))]
-        (is (= "eval-clojure" (get tool "name")))
-        (is (string? (get tool "description")))
-        (is (map? (get tool "inputSchema")))))))
+    (let [result (mcp-nrepl/handle-tools-list)
+          expected {"tools"
+                    [{"name" "eval-clojure"
+                      "description" "Evaluate Clojure code using nREPL"
+                      "inputSchema"
+                      {"type" "object"
+                       "properties"
+                       {"code" {"type" "string"
+                                "description" "The Clojure code to evaluate"}}
+                       "required" ["code"]}}]}]
+      (is (= expected result)))))
 
 ;; Test handle-error function (pure)
 (deftest test-handle-error
   (testing "Error response structure"
-    (let [result (mcp-nrepl/handle-error 123 "Test error")]
-      (is (= "2.0" (get result "jsonrpc")))
-      (is (= 123 (get result "id")))
-      (is (map? (get result "error")))
-      (is (= -1 (get-in result ["error" "code"])))
-      (is (= "Test error" (get-in result ["error" "message"])))))
+    (let [result (mcp-nrepl/handle-error 123 "Test error")
+          expected {"jsonrpc" "2.0"
+                    "id" 123
+                    "error" {"code" -1
+                             "message" "Test error"}}]
+      (is (= expected result))))
   
   (testing "Nil id handling"
-    (let [result (mcp-nrepl/handle-error nil "Error")]
-      (is (nil? (get result "id")))
-      (is (= "Error" (get-in result ["error" "message"]))))))
+    (let [result (mcp-nrepl/handle-error nil "Error")
+          expected {"jsonrpc" "2.0"
+                    "id" nil
+                    "error" {"code" -1
+                             "message" "Error"}}]
+      (is (= expected result)))))
 
 
 ;; Test constants and data structures
@@ -98,9 +114,7 @@
     (let [msg {"jsonrpc" "2.0" "id" 1 "method" "test"}
           json-str (json/generate-string msg)
           parsed (json/parse-string json-str)]
-      (is (= "2.0" (get parsed "jsonrpc")))
-      (is (= 1 (get parsed "id")))
-      (is (= "test" (get parsed "method"))))))
+      (is (= msg parsed)))))
 
 ;; Main test runner
 (defn run-all-tests []
