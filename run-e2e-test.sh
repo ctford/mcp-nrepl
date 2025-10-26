@@ -165,8 +165,69 @@ else
     exit 1
 fi
 
+# Step 6: Test comprehensive resource workflow
+echo -e "${YELLOW}Step 6: Testing comprehensive resource workflow...${NC}"
+
+# 6a. Define a function with documentation  
+echo -e "${YELLOW}  6a. Defining function with documentation...${NC}"
+DEFINE_FUNC_MSG='{"jsonrpc": "2.0", "id": 6, "method": "tools/call", "params": {"name": "eval-clojure", "arguments": {"code": "(defn add-nums \"Adds two numbers together\" [x y] (+ x y))"}}}'
+DEFINE_FUNC_RESPONSE=$(echo -e "$INIT_MSG\n$DEFINE_FUNC_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT" | tail -1)
+
+if echo "$DEFINE_FUNC_RESPONSE" | jq -e '.result.content[0].text' | grep -q "add-nums"; then
+    echo -e "${GREEN}  Function definition successful${NC}"
+else
+    echo -e "${RED}  Function definition failed${NC}"
+    echo "  Response: $DEFINE_FUNC_RESPONSE"
+    exit 1
+fi
+
+# 6b. List session variables
+echo -e "${YELLOW}  6b. Listing session variables...${NC}"
+VARS_MSG='{"jsonrpc": "2.0", "id": 7, "method": "resources/read", "params": {"uri": "clojure://session/vars"}}'
+VARS_RESPONSE=$(echo -e "$INIT_MSG\n$VARS_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT" | tail -1)
+
+VARS_TEXT=$(echo "$VARS_RESPONSE" | jq -r '.result.contents[0].text')
+if echo "$VARS_TEXT" | grep -q "add-nums"; then
+    echo -e "${GREEN}  Session variables listed - found add-nums${NC}"
+else
+    echo -e "${RED}  Session variables test failed${NC}"
+    echo "  Response: $VARS_RESPONSE"
+    exit 1
+fi
+
+# 6c. Get documentation for our defined function
+echo -e "${YELLOW}  6c. Getting documentation for add-nums...${NC}"
+DOC_MSG='{"jsonrpc": "2.0", "id": 8, "method": "resources/read", "params": {"uri": "clojure://doc/add-nums"}}'
+DOC_RESPONSE=$(echo -e "$INIT_MSG\n$DOC_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT" | tail -1)
+
+DOC_TEXT=$(echo "$DOC_RESPONSE" | jq -r '.result.contents[0].text')
+if echo "$DOC_TEXT" | grep -q "Adds two numbers together"; then
+    echo -e "${GREEN}  Documentation lookup verified - found docstring${NC}"
+else
+    echo -e "${RED}  Documentation lookup test failed${NC}"
+    echo "  Response: $DOC_RESPONSE"
+    exit 1
+fi
+
+# 6d. List namespaces
+echo -e "${YELLOW}  6d. Listing session namespaces...${NC}"
+NS_MSG='{"jsonrpc": "2.0", "id": 9, "method": "resources/read", "params": {"uri": "clojure://session/namespaces"}}'
+NS_RESPONSE=$(echo -e "$INIT_MSG\n$NS_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT" | tail -1)
+
+NS_TEXT=$(echo "$NS_RESPONSE" | jq -r '.result.contents[0].text')
+if echo "$NS_TEXT" | grep -q "user\|clojure.core"; then
+    echo -e "${GREEN}  Session namespaces listed successfully${NC}"
+else
+    echo -e "${RED}  Session namespaces test failed${NC}"
+    echo "  Response: $NS_RESPONSE"
+    exit 1
+fi
+
 echo -e "${GREEN}✅ All end-to-end tests passed!${NC}"
 echo -e "${GREEN}MCP-nREPL is working correctly with:${NC}"
 echo -e "${GREEN}  - MCP protocol initialization${NC}"
 echo -e "${GREEN}  - Function definition and invocation${NC}"
 echo -e "${GREEN}  - Error handling${NC}"
+echo -e "${GREEN}  - Resource-based session introspection${NC}"
+echo -e "${GREEN}  - Documentation lookup for defined functions${NC}"
+echo -e "${GREEN}  - Namespace and variable listing${NC}"
