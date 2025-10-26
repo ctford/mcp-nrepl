@@ -2,6 +2,13 @@
 
 This document provides instructions for developing and testing the MCP-nREPL bridge.
 
+## Quick Start
+
+1. **Start nREPL server**: `./start-nrepl.sh`
+2. **Run unit tests**: `./run-unit-tests.sh` 
+3. **Run e2e tests**: `./run-e2e-test.sh`
+4. **Evaluate code**: `./eval-clojure.sh "(+ 1 2 3)"`
+
 ## Starting the nREPL Server
 
 To start a Babashka nREPL server for testing:
@@ -26,23 +33,31 @@ The project has two types of tests:
 ./run-unit-tests.sh
 ```
 
-Tests pure functions only - no side effects, no I/O, no state mutations. Focuses on:
-- Argument parsing functions
-- MCP protocol handlers
-- Data transformation functions
-- Error response builders
+**Fast, isolated tests** (~1 second execution):
+- ✅ 37 test assertions covering pure functions only
+- ✅ No side effects, I/O, or state mutations  
+- ✅ Tests: argument parsing, MCP handlers, data transformation, error builders
+- ✅ Perfect for rapid development feedback
 
-### End-to-End Tests (Full Integration)
+### End-to-End Tests (Full Integration) 
 ```bash
 ./run-e2e-test.sh
 ```
 
-Complete integration test that:
-- Starts an nREPL server
-- Initializes MCP protocol
-- Defines a Clojure function with `defn`
-- Invokes the defined function
-- Verifies error handling
+**Complete workflow verification** (~5 seconds execution):
+- ✅ Starts nREPL server automatically on random port
+- ✅ Tests MCP protocol initialization  
+- ✅ Defines and invokes Clojure functions with `defn`
+- ✅ Verifies error handling with real exceptions
+- ✅ Automatic cleanup of processes and temporary files
+- ✅ Colorized output with clear success/failure indicators
+
+**Example E2E Test Flow:**
+1. `bb nrepl-server` → starts on port 54321
+2. `{"method": "initialize"}` → MCP handshake  
+3. `(defn square [x] (* x x))` → function definition
+4. `(square 7)` → returns `49`
+5. `(/ 1 0)` → catches `ArithmeticException`
 
 ## Dependencies
 
@@ -50,15 +65,16 @@ No external dependencies required! The script uses only built-in Babashka librar
 - `cheshire.core` - JSON parsing and generation (built-in)
 - `bencode.core` - Bencode encoding/decoding for nREPL communication (built-in)
 
-## Using MCP-nREPL
+## Usage
 
+### Port Configuration
 The script supports flexible port configuration:
 
 ```bash
-# Use command-line argument
+# Command-line argument (preferred)
 ./mcp-nrepl.bb --nrepl-port 1667
 
-# Use .nrepl-port file (fallback)
+# .nrepl-port file (fallback)
 echo "1667" > .nrepl-port
 ./mcp-nrepl.bb
 
@@ -66,9 +82,21 @@ echo "1667" > .nrepl-port
 ./mcp-nrepl.bb --help
 ```
 
-For quick evaluation:
+### Quick Evaluation
 ```bash
+# Start server first
+./start-nrepl.sh
+
+# Then evaluate in another terminal
 ./eval-clojure.sh "(+ 1 2 3)"
+./eval-clojure.sh "(defn greet [name] (str \"Hello, \" name \"!\"))"
+./eval-clojure.sh "(greet \"World\")"
+```
+
+### MCP Protocol Usage
+```bash
+# Send JSON-RPC messages directly
+echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}}}' | ./mcp-nrepl.bb --nrepl-port 1667
 ```
 
 ## Project Structure
@@ -84,6 +112,35 @@ For quick evaluation:
 ## Performance
 
 MCP-nREPL is significantly faster than traditional Clojure tooling:
-- ~0.4s per evaluation (vs ~3.5s for lein repl :connect)
-- ~9x faster than Leiningen-based evaluation
-- Minimal overhead over direct Babashka execution
+- **~0.4s per evaluation** (vs ~3.5s for lein repl :connect)
+- **~9x faster** than Leiningen-based evaluation  
+- **Minimal overhead** over direct Babashka execution
+- **Zero dependencies** - no external libs to download
+
+## Development Tips
+
+### Test-Driven Development
+```bash
+# Rapid unit test feedback during development
+./run-unit-tests.sh
+
+# Full integration verification before commits  
+./run-e2e-test.sh
+```
+
+### Debugging
+```bash
+# Check nREPL connectivity
+echo "1667" > .nrepl-port
+./eval-clojure.sh "(+ 1 1)"
+
+# Test MCP protocol directly
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | ./mcp-nrepl.bb --nrepl-port 1667
+```
+
+### Code Quality
+- **Unit tests** verify pure function correctness
+- **E2E tests** ensure real-world functionality  
+- **Zero external dependencies** for easy distribution
+- **some-> threading** eliminates nested when-let chains
+- **Keyword destructuring** for cleaner state access
