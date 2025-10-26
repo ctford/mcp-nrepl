@@ -91,22 +91,23 @@
 
 (defn eval-clojure-code [code]
   (ensure-nrepl-connection)
-  (if-let [socket (:nrepl-socket @state)]
-    (let [session-id (:session-id @state)
-          eval-msg {"op" "eval"
-                    "code" code
-                    "session" session-id
-                    "id" (str (java.util.UUID/randomUUID))}]
-      (if (send-nrepl-message socket eval-msg)
-        (loop [responses []]
-          (if-let [response (read-nrepl-response socket)]
-            (let [updated-responses (conj responses response)]
-              (if (contains? response "status")
-                updated-responses
-                (recur updated-responses)))
-            (throw (Exception. "Failed to read nREPL response"))))
-        (throw (Exception. "Failed to send eval message to nREPL"))))
-    (throw (Exception. "No nREPL connection available"))))
+  (let [{:keys [nrepl-socket session-id]} @state]
+    (if nrepl-socket
+      (let [socket nrepl-socket
+            eval-msg {"op" "eval"
+                      "code" code
+                      "session" session-id
+                      "id" (str (java.util.UUID/randomUUID))}]
+        (if (send-nrepl-message socket eval-msg)
+          (loop [responses []]
+            (if-let [response (read-nrepl-response socket)]
+              (let [updated-responses (conj responses response)]
+                (if (contains? response "status")
+                  updated-responses
+                  (recur updated-responses)))
+              (throw (Exception. "Failed to read nREPL response"))))
+          (throw (Exception. "Failed to send eval message to nREPL"))))
+      (throw (Exception. "No nREPL connection available")))))
 
 ;; MCP Protocol handlers
 (defn handle-initialize [params]
@@ -141,18 +142,14 @@
                       "text" "Error: Code parameter is required and cannot be empty"}]}
           (try
             (let [responses (eval-clojure-code code)
-                  values (keep #(when-let [v (get % "value")]
-                                  (if (bytes? v)
-                                    (String. v)
-                                    (str v))) responses)
-                  output (str/join "\n" (keep #(when-let [o (get % "out")]
-                                                 (if (bytes? o)
-                                                   (String. o)
-                                                   (str o))) responses))
-                  errors (str/join "\n" (keep #(when-let [e (get % "err")]
-                                                 (if (bytes? e)
-                                                   (String. e)
-                                                   (str e))) responses))
+                  decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))
+                  extract-field (fn [field] 
+                                  (->> responses
+                                       (keep #(get % field))
+                                       (map decode-if-bytes)))
+                  values (extract-field "value")
+                  output (str/join "\n" (extract-field "out"))
+                  errors (str/join "\n" (extract-field "err"))
                   result-text (str/join "\n" 
                                         (concat
                                          (when-not (str/blank? output) [output])
