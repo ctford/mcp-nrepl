@@ -1,0 +1,22 @@
+# nREPL files
+.nrepl-port
+.nrepl-pid
+
+# Log files
+*.log
+/tmp/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
