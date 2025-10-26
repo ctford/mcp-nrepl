@@ -14,39 +14,96 @@ NC='\033[0m' # No Color
 # Cleanup function
 cleanup() {
     echo -e "${YELLOW}Cleaning up...${NC}"
-    if [ -n "$NREPL_PID" ] && kill -0 "$NREPL_PID" 2>/dev/null; then
+    # Only cleanup servers we started
+    if [ "$MANAGED_SERVER" = true ] && [ -n "$NREPL_PID" ] && kill -0 "$NREPL_PID" 2>/dev/null; then
         echo "Stopping nREPL server (PID: $NREPL_PID)"
         kill "$NREPL_PID"
         wait "$NREPL_PID" 2>/dev/null || true
     fi
-    rm -f .nrepl-port .nrepl-pid /tmp/nrepl-output.log
+    # Only remove files if we created them
+    if [ "$MANAGED_SERVER" = true ]; then
+        rm -f .nrepl-port .nrepl-pid /tmp/nrepl-output.log
+    fi
 }
+
+# Parse command line arguments
+EXTERNAL_PORT=""
+MANAGED_SERVER=true
+
+usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo "Options:"
+    echo "  --nrepl-port PORT   Use existing nREPL server at specified port"
+    echo "  --help             Show this help message"
+    echo ""
+    echo "If no port is specified, a Babashka nREPL server will be started automatically."
+}
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --nrepl-port)
+            EXTERNAL_PORT="$2"
+            MANAGED_SERVER=false
+            shift 2
+            ;;
+        --help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            usage
+            exit 1
+            ;;
+    esac
+done
 
 # Set up signal handlers
 trap cleanup SIGINT SIGTERM EXIT
 
 echo -e "${YELLOW}Starting end-to-end test for mcp-nrepl...${NC}"
 
-# Step 1: Start nREPL server on random port
-echo -e "${YELLOW}Step 1: Starting nREPL server...${NC}"
-bb nrepl-server localhost:0 > /tmp/nrepl-output.log 2>&1 &
-NREPL_PID=$!
+# Step 1: Setup nREPL server connection
+if [ "$MANAGED_SERVER" = true ]; then
+    echo -e "${YELLOW}Step 1: Starting nREPL server...${NC}"
+    bb nrepl-server localhost:0 > /tmp/nrepl-output.log 2>&1 &
+    NREPL_PID=$!
 
-# Wait for server to start and extract port
-sleep 2
-if [ -f /tmp/nrepl-output.log ]; then
-    PORT=$(grep -o "127\.0\.0\.1:[0-9]*" /tmp/nrepl-output.log | head -1 | cut -d':' -f2)
-    if [ -n "$PORT" ]; then
-        echo "$PORT" > .nrepl-port
-        echo -e "${GREEN}nREPL server started on port: $PORT${NC}"
+    # Wait for server to start and extract port
+    sleep 2
+    if [ -f /tmp/nrepl-output.log ]; then
+        PORT=$(grep -o "127\.0\.0\.1:[0-9]*" /tmp/nrepl-output.log | head -1 | cut -d':' -f2)
+        if [ -n "$PORT" ]; then
+            echo "$PORT" > .nrepl-port
+            echo -e "${GREEN}nREPL server started on port: $PORT${NC}"
+        else
+            echo -e "${RED}Failed to extract port from nREPL output${NC}"
+            cat /tmp/nrepl-output.log
+            exit 1
+        fi
     else
-        echo -e "${RED}Failed to extract port from nREPL output${NC}"
-        cat /tmp/nrepl-output.log
+        echo -e "${RED}Failed to find nREPL output log${NC}"
         exit 1
     fi
 else
-    echo -e "${RED}Failed to find nREPL output log${NC}"
-    exit 1
+    echo -e "${YELLOW}Step 1: Using existing nREPL server...${NC}"
+    PORT="$EXTERNAL_PORT"
+    
+    # Validate port is a number
+    if ! [[ "$PORT" =~ ^[0-9]+$ ]]; then
+        echo -e "${RED}Invalid port number: $PORT${NC}"
+        exit 1
+    fi
+    
+    # Test connection to external server
+    echo -e "${YELLOW}Testing connection to nREPL server on port $PORT...${NC}"
+    if ! bash -c "echo > /dev/tcp/localhost/$PORT" 2>/dev/null; then
+        echo -e "${RED}Cannot connect to nREPL server on port $PORT${NC}"
+        echo -e "${RED}Make sure the server is running and accessible${NC}"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}Connected to existing nREPL server on port: $PORT${NC}"
 fi
 
 # Step 2: Initialize MCP
