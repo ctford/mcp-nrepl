@@ -84,9 +84,9 @@
   (when-not (:nrepl-socket @state)
     (some-> (or (:nrepl-port @state) (read-nrepl-port))
             (connect-to-nrepl)
-            (doto (->> (swap! state assoc :nrepl-socket)))
+            (doto (#(swap! state assoc :nrepl-socket %)))
             (create-session)
-            (->> (swap! state assoc :session-id)))))
+            (#(swap! state assoc :session-id %)))))
 
 (defn eval-clojure-code [code]
   (ensure-nrepl-connection)
