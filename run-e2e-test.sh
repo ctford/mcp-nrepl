@@ -34,15 +34,21 @@ echo -e "${YELLOW}Step 1: Setting up nREPL server...${NC}"
 ./start-nrepl.sh > /dev/null 2>&1 &
 START_SCRIPT_PID=$!
 
-# Wait for the script to complete server setup
-sleep 3
+# Poll for readiness instead of arbitrary sleep
+echo -e "${YELLOW}Waiting for nREPL server setup...${NC}"
+PORT=""
+for i in {1..30}; do
+    if [ -f .nrepl-port ]; then
+        PORT=$(cat .nrepl-port)
+        echo -e "${GREEN}nREPL server ready on port: $PORT${NC}"
+        break
+    fi
+    sleep 0.1
+done
 
-# Read the port from the file created by start script
-if [ -f .nrepl-port ]; then
-    PORT=$(cat .nrepl-port)
-    echo -e "${GREEN}nREPL server ready on port: $PORT${NC}"
-else
-    echo -e "${RED}Failed to setup nREPL server - .nrepl-port not found${NC}"
+# Check if we successfully got the port
+if [ -z "$PORT" ]; then
+    echo -e "${RED}Timeout waiting for nREPL server setup - .nrepl-port not created${NC}"
     exit 1
 fi
 
