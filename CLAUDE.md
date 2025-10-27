@@ -11,18 +11,25 @@ This document provides instructions for developing and testing the MCP-nREPL bri
 
 ## Starting the nREPL Server
 
-To start a Babashka nREPL server for testing:
+To start or connect to a Babashka nREPL server:
 
 ```bash
 ./start-nrepl.sh
 ```
 
 This script will:
-- Start a Babashka nREPL server on `127.0.0.1:1667`
-- Write the port number to `.nrepl-port`
-- Run in the foreground until stopped with Ctrl+C
+- **Detect existing nREPL servers** on common ports (1667, 7888, 7889)
+- **Reuse existing server** if found and responsive
+- **Start new Babashka nREPL server** if none exists
+- **Write the port number** to `.nrepl-port` 
+- **Run in the foreground** until stopped with Ctrl+C
 
-The server must be running before testing the MCP-nREPL bridge functionality.
+**Server Reuse Benefits:**
+- Faster startup (no new process needed)
+- Shared session state across tools
+- Resource efficient development workflow
+
+The server (existing or new) must be running before testing the MCP-nREPL bridge functionality.
 
 ## Running Tests
 
@@ -51,25 +58,26 @@ The project has two types of tests:
 - ✅ Automatic cleanup of processes and temporary files
 - ✅ Colorized output with clear success/failure indicators
 
-**Multi-Backend Testing:**
+**Simplified Testing:**
 ```bash
-# Auto-start Babashka server (default)
+# Always detects/reuses existing servers or starts new one
+./run-e2e-test.sh
+```
+
+**Multi-Backend Testing:**
+The E2E tests automatically work with any nREPL server:
+```bash
+# Test against Babashka (auto-detected)
+bb nrepl-server localhost:1667 &
 ./run-e2e-test.sh
 
-# Test against external Babashka server
-bb nrepl-server localhost:7890 &
-./run-e2e-test.sh --nrepl-port 7890
+# Test against Leiningen (auto-detected)  
+lein repl :headless :port 1667 &
+./run-e2e-test.sh
 
-# Test against Leiningen server
-lein repl :headless :port 7891 &
-./run-e2e-test.sh --nrepl-port 7891
-
-# Test against Clojure CLI server
-clj -Sdeps '{:deps {nrepl/nrepl {:mvn/version "1.0.0"}}}' -M -e "..." &
-./run-e2e-test.sh --nrepl-port 7892
-
-# Show help
-./run-e2e-test.sh --help
+# Test against Clojure CLI (auto-detected)
+clj -Sdeps '{:deps {nrepl/nrepl {:mvn/version "1.0.0"}}}' -X nrepl.cmdline/server :port 1667 &
+./run-e2e-test.sh
 ```
 
 **Example E2E Test Flow:**
