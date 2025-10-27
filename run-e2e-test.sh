@@ -223,6 +223,97 @@ else
     exit 1
 fi
 
+# Step 7: Test new file loading functionality
+echo -e "${YELLOW}Step 7: Testing file loading functionality...${NC}"
+
+# 7a. Create a test file
+echo -e "${YELLOW}  7a. Creating test Clojure file...${NC}"
+cat > /tmp/test-file.clj << 'EOF'
+(ns test-namespace)
+
+(defn multiply-by-two [x]
+  "Multiplies a number by two"
+  (* x 2))
+
+(defn hello-world []
+  "Returns a greeting"
+  "Hello from test file!")
+EOF
+
+# 7b. Load the file
+echo -e "${YELLOW}  7b. Loading test file...${NC}"
+LOAD_FILE_MSG='{"jsonrpc": "2.0", "id": 10, "method": "tools/call", "params": {"name": "load-file", "arguments": {"file-path": "/tmp/test-file.clj"}}}'
+LOAD_FILE_RESPONSE=$(echo -e "$INIT_MSG\n$LOAD_FILE_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT" | tail -1)
+
+LOAD_RESULT=$(echo "$LOAD_FILE_RESPONSE" | jq -r '.result.content[0].text')
+if echo "$LOAD_RESULT" | grep -q "Successfully loaded file\|hello-world"; then
+    echo -e "${GREEN}  File loading successful${NC}"
+else
+    echo -e "${RED}  File loading failed${NC}"
+    echo "  Response: $LOAD_FILE_RESPONSE"
+    exit 1
+fi
+
+# 7c. Test that functions from loaded file work (use fully qualified name)
+echo -e "${YELLOW}  7c. Testing function from loaded file...${NC}"
+TEST_LOADED_MSG='{"jsonrpc": "2.0", "id": 11, "method": "tools/call", "params": {"name": "eval-clojure", "arguments": {"code": "(test-namespace/multiply-by-two 5)"}}}'
+TEST_LOADED_RESPONSE=$(echo -e "$INIT_MSG\n$TEST_LOADED_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT" | tail -1)
+
+LOADED_RESULT=$(echo "$TEST_LOADED_RESPONSE" | jq -r '.result.content[0].text')
+if [ "$LOADED_RESULT" = "10" ]; then
+    echo -e "${GREEN}  Loaded function works: test-namespace/multiply-by-two(5) = $LOADED_RESULT${NC}"
+else
+    echo -e "${RED}  Loaded function test failed${NC}"
+    echo "  Expected: 10, Got: $LOADED_RESULT"
+    echo "  Response: $TEST_LOADED_RESPONSE"
+    exit 1
+fi
+
+# Step 8: Test namespace switching functionality
+echo -e "${YELLOW}Step 8: Testing namespace switching functionality...${NC}"
+
+# 8a. Get current namespace before switch
+echo -e "${YELLOW}  8a. Getting current namespace...${NC}"
+CURRENT_NS_MSG='{"jsonrpc": "2.0", "id": 12, "method": "resources/read", "params": {"uri": "clojure://session/current-ns"}}'
+CURRENT_NS_RESPONSE=$(echo -e "$INIT_MSG\n$CURRENT_NS_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT" | tail -1)
+
+CURRENT_NS_TEXT=$(echo "$CURRENT_NS_RESPONSE" | jq -r '.result.contents[0].text')
+echo -e "${GREEN}  Current namespace: $CURRENT_NS_TEXT${NC}"
+
+# 8b. Switch to test namespace and verify in the same session
+echo -e "${YELLOW}  8b. Switching to test-namespace and verifying...${NC}"
+SET_NS_MSG='{"jsonrpc": "2.0", "id": 13, "method": "tools/call", "params": {"name": "set-ns", "arguments": {"namespace": "test-namespace"}}}'
+VERIFY_NS_MSG='{"jsonrpc": "2.0", "id": 14, "method": "resources/read", "params": {"uri": "clojure://session/current-ns"}}'
+
+# Run both commands in the same session
+COMBINED_RESPONSE=$(echo -e "$INIT_MSG\n$SET_NS_MSG\n$VERIFY_NS_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT")
+SET_NS_RESPONSE=$(echo "$COMBINED_RESPONSE" | sed -n '2p')
+VERIFY_NS_RESPONSE=$(echo "$COMBINED_RESPONSE" | sed -n '3p')
+
+SET_NS_RESULT=$(echo "$SET_NS_RESPONSE" | jq -r '.result.content[0].text')
+if echo "$SET_NS_RESULT" | grep -q "Successfully switched to namespace\|test-namespace"; then
+    echo -e "${GREEN}  Namespace switch successful${NC}"
+else
+    echo -e "${RED}  Namespace switch failed${NC}"
+    echo "  Response: $SET_NS_RESPONSE"
+    exit 1
+fi
+
+# 8c. Verify namespace switch result from same session
+echo -e "${YELLOW}  8c. Verifying namespace switch...${NC}"
+VERIFY_NS_TEXT=$(echo "$VERIFY_NS_RESPONSE" | jq -r '.result.contents[0].text')
+if echo "$VERIFY_NS_TEXT" | grep -q "test-namespace"; then
+    echo -e "${GREEN}  Namespace verification successful: now in $VERIFY_NS_TEXT${NC}"
+else
+    echo -e "${RED}  Namespace verification failed${NC}"
+    echo "  Expected: test-namespace, Got: $VERIFY_NS_TEXT"
+    echo "  Response: $VERIFY_NS_RESPONSE"
+    exit 1
+fi
+
+# Clean up test file
+rm -f /tmp/test-file.clj
+
 echo -e "${GREEN}✅ All end-to-end tests passed!${NC}"
 echo -e "${GREEN}MCP-nREPL is working correctly with:${NC}"
 echo -e "${GREEN}  - MCP protocol initialization${NC}"
@@ -231,3 +322,6 @@ echo -e "${GREEN}  - Error handling${NC}"
 echo -e "${GREEN}  - Resource-based session introspection${NC}"
 echo -e "${GREEN}  - Documentation lookup for defined functions${NC}"
 echo -e "${GREEN}  - Namespace and variable listing${NC}"
+echo -e "${GREEN}  - File loading functionality${NC}"
+echo -e "${GREEN}  - Namespace switching${NC}"
+echo -e "${GREEN}  - Current namespace resource${NC}"

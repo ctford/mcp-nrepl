@@ -117,7 +117,47 @@ echo "1667" > .nrepl-port
 ```bash
 # Send JSON-RPC messages directly
 echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}}}' | ./mcp-nrepl.bb --nrepl-port 1667
+
+# Use the eval-clojure tool
+echo '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "eval-clojure", "arguments": {"code": "(+ 1 2 3)"}}}' | ./mcp-nrepl.bb --nrepl-port 1667
+
+# Load a Clojure file
+echo '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "load-file", "arguments": {"file-path": "src/my-file.clj"}}}' | ./mcp-nrepl.bb --nrepl-port 1667
+
+# Switch namespace
+echo '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "set-ns", "arguments": {"namespace": "my.namespace"}}}' | ./mcp-nrepl.bb --nrepl-port 1667
+
+# Get current namespace
+echo '{"jsonrpc": "2.0", "id": 5, "method": "resources/read", "params": {"uri": "clojure://session/current-ns"}}' | ./mcp-nrepl.bb --nrepl-port 1667
 ```
+
+## Tools and Resources
+
+### Available Tools
+MCP-nREPL provides three tools for interacting with the nREPL session:
+
+- **`eval-clojure`** - Evaluate Clojure code expressions
+  - Parameters: `code` (string) - The Clojure code to evaluate
+  - Returns: Evaluation result, output, and any errors
+
+- **`load-file`** - Load and evaluate a complete Clojure file
+  - Parameters: `file-path` (string) - Path to the Clojure file to load
+  - Returns: Success message or evaluation output
+  - Handles file existence validation
+
+- **`set-ns`** - Switch to a different namespace in the REPL session
+  - Parameters: `namespace` (string) - The namespace to switch to
+  - Returns: Confirmation of namespace switch
+  - Creates namespace if it doesn't exist
+
+### Available Resources
+MCP-nREPL provides several resources for session introspection:
+
+- **`clojure://session/vars`** - List currently defined variables in the session
+- **`clojure://session/namespaces`** - List all loaded namespaces
+- **`clojure://session/current-ns`** - Get the current default namespace
+- **`clojure://doc/{symbol}`** - Get documentation for a symbol
+- **`clojure://source/{symbol}`** - Get source code for a symbol
 
 ## Project Structure
 

@@ -69,7 +69,42 @@
                        "properties"
                        {"code" {"type" "string"
                                 "description" "The Clojure code to evaluate"}}
-                       "required" ["code"]}}]}]
+                       "required" ["code"]}}
+                     {"name" "load-file"
+                      "description" "Load and evaluate a Clojure file using nREPL"
+                      "inputSchema"
+                      {"type" "object"
+                       "properties"
+                       {"file-path" {"type" "string"
+                                     "description" "The path to the Clojure file to load"}}
+                       "required" ["file-path"]}}
+                     {"name" "set-ns"
+                      "description" "Switch to a different namespace in the nREPL session"
+                      "inputSchema"
+                      {"type" "object"
+                       "properties"
+                       {"namespace" {"type" "string"
+                                     "description" "The namespace to switch to"}}
+                       "required" ["namespace"]}}]}]
+      (is (= expected result)))))
+
+;; Test handle-resources-list function (pure)
+(deftest test-handle-resources-list
+  (testing "Resources list structure"
+    (let [result (mcp-nrepl/handle-resources-list)
+          expected {"resources"
+                    [{"uri" "clojure://session/vars"
+                      "name" "Session Variables"
+                      "description" "Currently defined variables in the REPL session"
+                      "mimeType" "application/json"}
+                     {"uri" "clojure://session/namespaces"  
+                      "name" "Session Namespaces"
+                      "description" "Currently loaded namespaces in the REPL session"
+                      "mimeType" "application/json"}
+                     {"uri" "clojure://session/current-ns"
+                      "name" "Current Namespace"
+                      "description" "The current default namespace in the REPL session"
+                      "mimeType" "text/plain"}]}]
       (is (= expected result)))))
 
 ;; Test handle-error function (pure)

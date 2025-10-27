@@ -207,6 +207,30 @@
                  first))))
       nil)))
 
+(defn get-current-namespace []
+  (ensure-nrepl-connection)
+  (let [{:keys [nrepl-socket session-id]} @state]
+    (if nrepl-socket
+      (let [socket nrepl-socket
+            ns-msg {"op" "eval"
+                    "code" "(str *ns*)"
+                    "session" session-id
+                    "id" (str (java.util.UUID/randomUUID))}]
+        (when (send-nrepl-message socket ns-msg)
+          (let [responses (loop [responses []]
+                           (if-let [response (read-nrepl-response socket)]
+                             (let [updated-responses (conj responses response)]
+                               (if (contains? response "status")
+                                 updated-responses
+                                 (recur updated-responses)))
+                             responses))
+                decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))]
+            (->> responses
+                 (keep #(get % "value"))
+                 (map decode-if-bytes)
+                 first))))
+      nil)))
+
 ;; MCP Protocol handlers
 (defn handle-initialize [params]
   (let [client-version (get params "protocolVersion")
@@ -226,7 +250,23 @@
       "properties"
       {"code" {"type" "string"
                "description" "The Clojure code to evaluate"}}
-      "required" ["code"]}}]})
+      "required" ["code"]}}
+    {"name" "load-file"
+     "description" "Load and evaluate a Clojure file using nREPL"
+     "inputSchema"
+     {"type" "object"
+      "properties"
+      {"file-path" {"type" "string"
+                    "description" "The path to the Clojure file to load"}}
+      "required" ["file-path"]}}
+    {"name" "set-ns"
+     "description" "Switch to a different namespace in the nREPL session"
+     "inputSchema"
+     {"type" "object"
+      "properties"
+      {"namespace" {"type" "string"
+                    "description" "The namespace to switch to"}}
+      "required" ["namespace"]}}]})
 
 (defn handle-tools-call [params]
   (let [tool-name (get params "name")
@@ -262,6 +302,72 @@
                "content" [{"type" "text"
                           "text" (str "Error evaluating Clojure code: " (.getMessage e))}]}))))
       
+      "load-file"
+      (let [file-path (get arguments "file-path")]
+        (if (str/blank? file-path)
+          {"isError" true
+           "content" [{"type" "text"
+                      "text" "Error: file-path parameter is required and cannot be empty"}]}
+          (try
+            (if (fs/exists? file-path)
+              (let [code (str "(load-file \"" file-path "\")")
+                    responses (eval-clojure-code code)
+                    decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))
+                    extract-field (fn [field] 
+                                    (->> responses
+                                         (keep #(get % field))
+                                         (map decode-if-bytes)))
+                    values (extract-field "value")
+                    output (str/join "\n" (extract-field "out"))
+                    errors (str/join "\n" (extract-field "err"))
+                    result-text (str/join "\n" 
+                                          (concat
+                                           (when-not (str/blank? output) [output])
+                                           (when-not (str/blank? errors) [errors])
+                                           values))]
+                {"content" [{"type" "text"
+                            "text" (if (str/blank? result-text)
+                                     (str "Successfully loaded file: " file-path)
+                                     result-text)}]})
+              {"isError" true
+               "content" [{"type" "text"
+                          "text" (str "Error: File not found: " file-path)}]})
+            (catch Exception e
+              {"isError" true
+               "content" [{"type" "text"
+                          "text" (str "Error loading file: " (.getMessage e))}]}))))
+      
+      "set-ns"
+      (let [namespace (get arguments "namespace")]
+        (if (str/blank? namespace)
+          {"isError" true
+           "content" [{"type" "text"
+                      "text" "Error: namespace parameter is required and cannot be empty"}]}
+          (try
+            (let [code (str "(in-ns '" namespace ")")
+                  responses (eval-clojure-code code)
+                  decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))
+                  extract-field (fn [field] 
+                                  (->> responses
+                                       (keep #(get % field))
+                                       (map decode-if-bytes)))
+                  values (extract-field "value")
+                  output (str/join "\n" (extract-field "out"))
+                  errors (str/join "\n" (extract-field "err"))
+                  result-text (str/join "\n" 
+                                        (concat
+                                         (when-not (str/blank? output) [output])
+                                         (when-not (str/blank? errors) [errors])
+                                         values))]
+              {"content" [{"type" "text"
+                          "text" (if (str/blank? result-text)
+                                   (str "Successfully switched to namespace: " namespace)
+                                   result-text)}]})
+            (catch Exception e
+              {"isError" true
+               "content" [{"type" "text"
+                          "text" (str "Error switching namespace: " (.getMessage e))}]}))))
+      
       {"isError" true
        "content" [{"type" "text"
                   "text" (str "Unknown tool: " tool-name)}]})))
@@ -275,7 +381,11 @@
     {"uri" "clojure://session/namespaces"  
      "name" "Session Namespaces"
      "description" "Currently loaded namespaces in the REPL session"
-     "mimeType" "application/json"}]})
+     "mimeType" "application/json"}
+    {"uri" "clojure://session/current-ns"
+     "name" "Current Namespace"
+     "description" "The current default namespace in the REPL session"
+     "mimeType" "text/plain"}]})
 
 (defn handle-resources-read [params]
   (let [uri (get params "uri")]
@@ -317,6 +427,15 @@
         {"contents" [{"uri" uri
                      "mimeType" "application/json"
                      "text" "[]"}]})
+      
+      (= uri "clojure://session/current-ns")
+      (if-let [current-ns (get-current-namespace)]
+        {"contents" [{"uri" uri
+                     "mimeType" "text/plain"
+                     "text" current-ns}]}
+        {"contents" [{"uri" uri
+                     "mimeType" "text/plain"
+                     "text" "user"}]})
       
       :else
       (throw (Exception. (str "Unknown resource URI: " uri))))))
