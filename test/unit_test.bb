@@ -10,25 +10,25 @@
 
 ;; Test pure functions only - no side effects, no I/O, no state mutations
 
-;; Test parse-port function
-(deftest test-parse-port
-  (testing "Valid port numbers"
+;; Test port parsing handles valid and invalid inputs correctly
+(deftest port-parsing-handles-valid-and-invalid-inputs-correctly
+  (testing "Valid port numbers are parsed correctly"
     (is (= 1667 (mcp-nrepl/parse-port "1667")))
     (is (= 8080 (mcp-nrepl/parse-port "8080")))
     (is (= 1234 (mcp-nrepl/parse-port " 1234 "))))
   
-  (testing "Invalid port numbers"
+  (testing "Invalid port numbers return nil"
     (is (nil? (mcp-nrepl/parse-port "abc")))
     (is (nil? (mcp-nrepl/parse-port "")))
     (is (nil? (mcp-nrepl/parse-port nil))))
   
-  (testing "Valid but high port numbers"
+  (testing "High port numbers are handled correctly"
     (is (= 65536 (mcp-nrepl/parse-port "65536")))
     (is (= 65535 (mcp-nrepl/parse-port "65535")))))
 
-;; Test handle-initialize function (pure - no side effects)
-(deftest test-handle-initialize
-  (testing "Valid initialization parameters"
+;; Test initialization returns correct MCP protocol response structure
+(deftest initialization-returns-correct-mcp-protocol-response-structure
+  (testing "Valid initialization parameters produce expected response"
     (let [params {"protocolVersion" "2024-11-05"
                   "capabilities" {}
                   "clientInfo" {"name" "test" "version" "1.0"}}
@@ -39,7 +39,7 @@
                     "serverInfo" {:name "mcp-nrepl" :version "0.1.0"}}]
       (is (= expected result))))
   
-  (testing "Missing capabilities"
+  (testing "Missing capabilities still produces valid response"
     (let [params {"protocolVersion" "2024-11-05"}
           result (mcp-nrepl/handle-initialize params)
           expected {"protocolVersion" "2024-11-05"
@@ -48,7 +48,7 @@
                     "serverInfo" {:name "mcp-nrepl" :version "0.1.0"}}]
       (is (= expected result))))
   
-  (testing "Missing protocol version"
+  (testing "Missing protocol version still produces valid response"
     (let [params {"capabilities" {}}
           result (mcp-nrepl/handle-initialize params)
           expected {"protocolVersion" "2024-11-05"
@@ -57,9 +57,9 @@
                     "serverInfo" {:name "mcp-nrepl" :version "0.1.0"}}]
       (is (= expected result)))))
 
-;; Test handle-tools-list function (pure)
-(deftest test-handle-tools-list
-  (testing "Tools list structure"
+;; Test tools list contains all expected tools with correct schemas
+(deftest tools-list-contains-all-expected-tools-with-correct-schemas
+  (testing "Tools list includes eval-clojure, load-file, and set-ns with proper schemas"
     (let [result (mcp-nrepl/handle-tools-list)
           expected {"tools"
                     [{"name" "eval-clojure"
@@ -88,9 +88,9 @@
                        "required" ["namespace"]}}]}]
       (is (= expected result)))))
 
-;; Test handle-resources-list function (pure)
-(deftest test-handle-resources-list
-  (testing "Resources list structure"
+;; Test resources list contains all session introspection resources
+(deftest resources-list-contains-all-session-introspection-resources
+  (testing "Resources list includes session vars, namespaces, and current-ns"
     (let [result (mcp-nrepl/handle-resources-list)
           expected {"resources"
                     [{"uri" "clojure://session/vars"
@@ -107,9 +107,9 @@
                       "mimeType" "text/plain"}]}]
       (is (= expected result)))))
 
-;; Test handle-error function (pure)
-(deftest test-handle-error
-  (testing "Error response structure"
+;; Test error responses follow JSON-RPC error format correctly
+(deftest error-responses-follow-jsonrpc-error-format-correctly
+  (testing "Error response has correct JSON-RPC structure with id and message"
     (let [result (mcp-nrepl/handle-error 123 "Test error")
           expected {"jsonrpc" "2.0"
                     "id" 123
@@ -117,7 +117,7 @@
                              "message" "Test error"}}]
       (is (= expected result))))
   
-  (testing "Nil id handling"
+  (testing "Nil request id is preserved in error response"
     (let [result (mcp-nrepl/handle-error nil "Error")
           expected {"jsonrpc" "2.0"
                     "id" nil
@@ -126,26 +126,26 @@
       (is (= expected result)))))
 
 
-;; Test constants and data structures
-(deftest test-constants
-  (testing "MCP version is defined"
+;; Test constants have expected values for MCP protocol compliance
+(deftest constants-have-expected-values-for-mcp-protocol-compliance
+  (testing "MCP version string matches protocol specification"
     (is (string? mcp-nrepl/MCP-VERSION))
     (is (= "2024-11-05" mcp-nrepl/MCP-VERSION)))
   
-  (testing "Server info structure"
+  (testing "Server info contains name and version fields"
     (is (map? mcp-nrepl/SERVER-INFO))
     (is (= "mcp-nrepl" (:name mcp-nrepl/SERVER-INFO)))
     (is (string? (:version mcp-nrepl/SERVER-INFO)))))
 
-;; Test JSON serialization (pure function behavior)
-(deftest test-json-handling
-  (testing "JSON round-trip"
+;; Test JSON serialization preserves data integrity for MCP messages
+(deftest json-serialization-preserves-data-integrity-for-mcp-messages
+  (testing "JSON round-trip maintains data equality"
     (let [data {"test" "value" "number" 42}
           json-str (json/generate-string data)
           parsed (json/parse-string json-str)]
       (is (= data parsed))))
   
-  (testing "MCP message structure"
+  (testing "MCP message structures serialize and deserialize correctly"
     (let [msg {"jsonrpc" "2.0" "id" 1 "method" "test"}
           json-str (json/generate-string msg)
           parsed (json/parse-string json-str)]
