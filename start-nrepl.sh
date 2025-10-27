@@ -8,6 +8,22 @@ set -e
 PORT_FILE=".nrepl-port"
 PID_FILE=".nrepl-pid"
 
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --help)
+            echo "Usage: $0 [--help]"
+            echo "  --help          Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
 # Function to test if a port is responsive
 test_nrepl_connection() {
     local port=$1
@@ -46,20 +62,6 @@ detect_existing_nrepl() {
     return 1
 }
 
-# Function to cleanup on exit (only if we started the server)
-cleanup() {
-    echo "Cleaning up..."
-    if [ -f "$PID_FILE" ]; then
-        PID=$(cat "$PID_FILE")
-        if kill -0 "$PID" 2>/dev/null; then
-            echo "Stopping nREPL server (PID: $PID)"
-            kill "$PID"
-        fi
-        rm -f "$PID_FILE"
-        rm -f "$PORT_FILE"
-    fi
-    exit 0
-}
 
 echo "Checking for existing nREPL servers..."
 
@@ -69,58 +71,43 @@ if existing_port=$(detect_existing_nrepl); then
     echo "$existing_port" > "$PORT_FILE"
     echo "Port written to: $PORT_FILE"
     echo "nREPL server is ready for testing (reusing existing server)"
-    echo "Press Ctrl+C to exit (server will continue running)"
-    
-    # Wait for interrupt - don't set cleanup trap since we don't own the server
-    trap 'echo "Exiting..."; exit 0' SIGINT SIGTERM
-    
-    # Keep script running until interrupted
-    while true; do
-        sleep 1
-    done
+    exit 0
 else
     echo "No existing nREPL server found. Starting new Babashka nREPL server..."
     
-    # Set up signal handlers for cleanup (only if we start the server)
-    trap cleanup SIGINT SIGTERM EXIT
-    
     # Clean up any existing files
     rm -f "$PORT_FILE" "$PID_FILE"
-fi
-
-# Start nREPL server in background and capture its PID
-bb nrepl-server > /tmp/nrepl-output.log 2>&1 &
-NREPL_PID=$!
-
-# Save the PID
-echo "$NREPL_PID" > "$PID_FILE"
-
-echo "nREPL server started with PID: $NREPL_PID"
-
-# Wait a moment for the server to start up
-sleep 2
-
-# Extract port from the log output
-if [ -f /tmp/nrepl-output.log ]; then
-    # Look for port in the log file (format: "127.0.0.1:1667")
-    PORT=$(grep -o "127\.0\.0\.1:[0-9]*" /tmp/nrepl-output.log | head -1 | cut -d':' -f2)
     
-    if [ -n "$PORT" ]; then
-        echo "$PORT" > "$PORT_FILE"
-        echo "nREPL server listening on port: $PORT"
-        echo "Port written to: $PORT_FILE"
+    # Start nREPL server in background and capture its PID
+    bb nrepl-server > /tmp/nrepl-output.log 2>&1 &
+    NREPL_PID=$!
+    
+    # Save the PID for reference
+    echo "$NREPL_PID" > "$PID_FILE"
+    
+    echo "nREPL server started with PID: $NREPL_PID"
+    
+    # Wait a moment for the server to start up
+    sleep 2
+    
+    # Extract port from the log output
+    if [ -f /tmp/nrepl-output.log ]; then
+        # Look for port in the log file (format: "127.0.0.1:1667")
+        PORT=$(grep -o "127\.0\.0\.1:[0-9]*" /tmp/nrepl-output.log | head -1 | cut -d':' -f2)
+        
+        if [ -n "$PORT" ]; then
+            echo "$PORT" > "$PORT_FILE"
+            echo "nREPL server listening on port: $PORT"
+            echo "Port written to: $PORT_FILE"
+            echo "nREPL server is ready for testing"
+            exit 0
+        else
+            echo "Failed to extract port from nREPL output"
+            cat /tmp/nrepl-output.log
+            exit 1
+        fi
     else
-        echo "Failed to extract port from nREPL output"
-        cat /tmp/nrepl-output.log
+        echo "Failed to find nREPL output log"
         exit 1
     fi
-else
-    echo "Failed to find nREPL output log"
-    exit 1
 fi
-
-echo "nREPL server is ready for testing"
-echo "Press Ctrl+C to stop the server"
-
-# Wait for the nREPL process to finish or be interrupted
-wait "$NREPL_PID"

@@ -14,10 +14,6 @@ NC='\033[0m' # No Color
 # Cleanup function
 cleanup() {
     echo -e "${YELLOW}Cleaning up...${NC}"
-    # Kill the start script background process if it's running
-    if [ -n "$START_SCRIPT_PID" ] && kill -0 "$START_SCRIPT_PID" 2>/dev/null; then
-        kill "$START_SCRIPT_PID" 2>/dev/null || true
-    fi
     # Clean up test files
     rm -f /tmp/test-file.clj
 }
@@ -30,25 +26,15 @@ echo -e "${YELLOW}Starting end-to-end test for mcp-nrepl...${NC}"
 # Step 1: Setup nREPL server connection using start script
 echo -e "${YELLOW}Step 1: Setting up nREPL server...${NC}"
 
-# Start the nREPL script in background (it will detect existing or start new)
-./start-nrepl.sh > /dev/null 2>&1 &
-START_SCRIPT_PID=$!
+# Run the start script (it will detect existing or start new, then exit)
+./start-nrepl.sh
 
-# Poll for readiness instead of arbitrary sleep
-echo -e "${YELLOW}Waiting for nREPL server setup...${NC}"
-PORT=""
-for i in {1..30}; do
-    if [ -f .nrepl-port ]; then
-        PORT=$(cat .nrepl-port)
-        echo -e "${GREEN}nREPL server ready on port: $PORT${NC}"
-        break
-    fi
-    sleep 0.1
-done
-
-# Check if we successfully got the port
-if [ -z "$PORT" ]; then
-    echo -e "${RED}Timeout waiting for nREPL server setup - .nrepl-port not created${NC}"
+# Read the port that was created
+if [ -f .nrepl-port ]; then
+    PORT=$(cat .nrepl-port)
+    echo -e "${GREEN}nREPL server ready on port: $PORT${NC}"
+else
+    echo -e "${RED}Failed to setup nREPL server - .nrepl-port not created${NC}"
     exit 1
 fi
 
