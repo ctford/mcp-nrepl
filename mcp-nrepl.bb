@@ -23,24 +23,28 @@
     (println (str "[ERROR] " (apply format msg args)))))
 
 (defn parse-port [port-str]
+  "Pure function: parse port string to integer, returns nil if invalid"
   (when port-str
-    (or (parse-long (str/trim port-str))
-        (do (log-error "Invalid port number: %s" port-str)
-            nil))))
+    (parse-long (str/trim port-str))))
 
 (defn read-nrepl-port [& [provided-port]]
   (cond
-    provided-port (parse-port provided-port)
-    
+    provided-port
+    (or (parse-port provided-port)
+        (do (log-error "Invalid port number: %s" provided-port)
+            nil))
+
     (fs/exists? ".nrepl-port")
     (try
-      (-> ".nrepl-port"
-          slurp
-          parse-port)
+      (let [port-str (slurp ".nrepl-port")
+            port (parse-port port-str)]
+        (or port
+            (do (log-error "Invalid port number in .nrepl-port: %s" port-str)
+                nil)))
       (catch Exception e
         (log-error "Failed to read .nrepl-port: %s" (.getMessage e))
         nil))
-    
+
     :else
     (do
       (log-error "No nREPL port specified. Use --nrepl-port <port> or create .nrepl-port file")
