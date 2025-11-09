@@ -266,7 +266,15 @@
       "properties"
       {"namespace" {"type" "string"
                     "description" "The namespace to switch to"}}
-      "required" ["namespace"]}}]})
+      "required" ["namespace"]}}
+    {"name" "apropos"
+     "description" "Search for symbols matching a pattern in their name or documentation"
+     "inputSchema"
+     {"type" "object"
+      "properties"
+      {"query" {"type" "string"
+                "description" "Search pattern (string or regex) to match against symbol names"}}
+      "required" ["query"]}}]})
 
 (defn handle-tools-call [params]
   (let [tool-name (get params "name")
@@ -347,14 +355,14 @@
             (let [code (str "(in-ns '" namespace ")")
                   responses (eval-clojure-code code)
                   decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))
-                  extract-field (fn [field] 
+                  extract-field (fn [field]
                                   (->> responses
                                        (keep #(get % field))
                                        (map decode-if-bytes)))
                   values (extract-field "value")
                   output (str/join "\n" (extract-field "out"))
                   errors (str/join "\n" (extract-field "err"))
-                  result-text (str/join "\n" 
+                  result-text (str/join "\n"
                                         (concat
                                          (when-not (str/blank? output) [output])
                                          (when-not (str/blank? errors) [errors])
@@ -367,7 +375,38 @@
               {"isError" true
                "content" [{"type" "text"
                           "text" (str "Error switching namespace: " (.getMessage e))}]}))))
-      
+
+      "apropos"
+      (let [query (get arguments "query")]
+        (if (str/blank? query)
+          {"isError" true
+           "content" [{"type" "text"
+                      "text" "Error: query parameter is required and cannot be empty"}]}
+          (try
+            (let [code (str "(require 'clojure.repl) (clojure.repl/apropos \"" query "\")")
+                  responses (eval-clojure-code code)
+                  decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))
+                  extract-field (fn [field]
+                                  (->> responses
+                                       (keep #(get % field))
+                                       (map decode-if-bytes)))
+                  values (extract-field "value")
+                  output (str/join "\n" (extract-field "out"))
+                  errors (str/join "\n" (extract-field "err"))
+                  result-text (str/join "\n"
+                                        (concat
+                                         (when-not (str/blank? output) [output])
+                                         (when-not (str/blank? errors) [errors])
+                                         values))]
+              {"content" [{"type" "text"
+                          "text" (if (str/blank? result-text)
+                                   "No matches found"
+                                   result-text)}]})
+            (catch Exception e
+              {"isError" true
+               "content" [{"type" "text"
+                          "text" (str "Error searching symbols: " (.getMessage e))}]}))))
+
       {"isError" true
        "content" [{"type" "text"
                   "text" (str "Unknown tool: " tool-name)}]})))

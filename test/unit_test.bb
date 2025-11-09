@@ -59,7 +59,7 @@
 
 ;; Test tools list contains all expected tools with correct schemas
 (deftest tools-list-contains-all-expected-tools-with-correct-schemas
-  (testing "Tools list includes eval-clojure, load-file, and set-ns with proper schemas"
+  (testing "Tools list includes eval-clojure, load-file, set-ns, and apropos with proper schemas"
     (let [result (mcp-nrepl/handle-tools-list)
           expected {"tools"
                     [{"name" "eval-clojure"
@@ -85,7 +85,15 @@
                        "properties"
                        {"namespace" {"type" "string"
                                      "description" "The namespace to switch to"}}
-                       "required" ["namespace"]}}]}]
+                       "required" ["namespace"]}}
+                     {"name" "apropos"
+                      "description" "Search for symbols matching a pattern in their name or documentation"
+                      "inputSchema"
+                      {"type" "object"
+                       "properties"
+                       {"query" {"type" "string"
+                                 "description" "Search pattern (string or regex) to match against symbol names"}}
+                       "required" ["query"]}}]}]
       (is (= expected result)))))
 
 ;; Test resources list contains all session introspection resources

@@ -243,6 +243,37 @@ else
     exit 1
 fi
 
+# Step 9: Test apropos functionality
+echo -e "${YELLOW}Step 9: Testing apropos functionality...${NC}"
+
+# 9a. Search for symbols matching "map"
+echo -e "${YELLOW}  9a. Searching for symbols matching 'map'...${NC}"
+APROPOS_MSG='{"jsonrpc": "2.0", "id": 15, "method": "tools/call", "params": {"name": "apropos", "arguments": {"query": "map"}}}'
+APROPOS_RESPONSE=$(echo -e "$INIT_MSG\n$APROPOS_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT" | tail -1)
+
+APROPOS_TEXT=$(echo "$APROPOS_RESPONSE" | jq -r '.result.content[0].text')
+if echo "$APROPOS_TEXT" | grep -q "clojure.core/map"; then
+    echo -e "${GREEN}  Apropos search successful - found clojure.core/map${NC}"
+else
+    echo -e "${RED}  Apropos search failed${NC}"
+    echo "  Response: $APROPOS_RESPONSE"
+    exit 1
+fi
+
+# 9b. Search for previously defined function
+echo -e "${YELLOW}  9b. Searching for our defined 'square' function...${NC}"
+APROPOS_SQUARE_MSG='{"jsonrpc": "2.0", "id": 16, "method": "tools/call", "params": {"name": "apropos", "arguments": {"query": "square"}}}'
+APROPOS_SQUARE_RESPONSE=$(echo -e "$INIT_MSG\n$APROPOS_SQUARE_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT" | tail -1)
+
+APROPOS_SQUARE_TEXT=$(echo "$APROPOS_SQUARE_RESPONSE" | jq -r '.result.content[0].text')
+if echo "$APROPOS_SQUARE_TEXT" | grep -q "user/square"; then
+    echo -e "${GREEN}  Apropos found user-defined function: user/square${NC}"
+else
+    echo -e "${RED}  Apropos did not find user-defined function${NC}"
+    echo "  Response: $APROPOS_SQUARE_RESPONSE"
+    exit 1
+fi
+
 # Clean up test file
 rm -f /tmp/test-file.clj
 
@@ -257,3 +288,4 @@ echo -e "${GREEN}  - Namespace and variable listing${NC}"
 echo -e "${GREEN}  - File loading functionality${NC}"
 echo -e "${GREEN}  - Namespace switching${NC}"
 echo -e "${GREEN}  - Current namespace resource${NC}"
+echo -e "${GREEN}  - Apropos symbol search${NC}"

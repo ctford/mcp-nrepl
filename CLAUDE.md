@@ -135,14 +135,17 @@ echo '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "lo
 # Switch namespace
 echo '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "set-ns", "arguments": {"namespace": "my.namespace"}}}' | ./mcp-nrepl.bb --nrepl-port 1667
 
+# Search for symbols matching a pattern
+echo '{"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "apropos", "arguments": {"query": "map"}}}' | ./mcp-nrepl.bb --nrepl-port 1667
+
 # Get current namespace
-echo '{"jsonrpc": "2.0", "id": 5, "method": "resources/read", "params": {"uri": "clojure://session/current-ns"}}' | ./mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 6, "method": "resources/read", "params": {"uri": "clojure://session/current-ns"}}' | ./mcp-nrepl.bb --nrepl-port 1667
 ```
 
 ## Tools and Resources
 
 ### Available Tools
-MCP-nREPL provides three tools for interacting with the nREPL session:
+MCP-nREPL provides four tools for interacting with the nREPL session:
 
 - **`eval-clojure`** - Evaluate Clojure code expressions
   - Parameters: `code` (string) - The Clojure code to evaluate
@@ -157,6 +160,11 @@ MCP-nREPL provides three tools for interacting with the nREPL session:
   - Parameters: `namespace` (string) - The namespace to switch to
   - Returns: Confirmation of namespace switch
   - Creates namespace if it doesn't exist
+
+- **`apropos`** - Search for symbols matching a pattern
+  - Parameters: `query` (string) - Search pattern to match against symbol names
+  - Returns: List of matching symbols with their fully-qualified names
+  - Searches both built-in and user-defined symbols
 
 ### Available Resources
 MCP-nREPL provides several resources for session introspection:
