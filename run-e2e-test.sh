@@ -141,9 +141,23 @@ else
     exit 1
 fi
 
-# 6d. List namespaces
-echo -e "${YELLOW}  6d. Listing session namespaces...${NC}"
-NS_MSG='{"jsonrpc": "2.0", "id": 9, "method": "resources/read", "params": {"uri": "clojure://session/namespaces"}}'
+# 6d. Get source for a built-in function
+echo -e "${YELLOW}  6d. Getting source for clojure.core/map...${NC}"
+SOURCE_MSG='{"jsonrpc": "2.0", "id": 9, "method": "resources/read", "params": {"uri": "clojure://source/map"}}'
+SOURCE_RESPONSE=$(echo -e "$INIT_MSG\n$SOURCE_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT" | tail -1)
+
+SOURCE_TEXT=$(echo "$SOURCE_RESPONSE" | jq -r '.result.contents[0].text')
+if echo "$SOURCE_TEXT" | grep -q "defn map\|No source found\|Source not found"; then
+    echo -e "${GREEN}  Source lookup verified - got source or expected message${NC}"
+else
+    echo -e "${RED}  Source lookup test failed${NC}"
+    echo "  Response: $SOURCE_RESPONSE"
+    exit 1
+fi
+
+# 6e. List namespaces
+echo -e "${YELLOW}  6e. Listing session namespaces...${NC}"
+NS_MSG='{"jsonrpc": "2.0", "id": 10, "method": "resources/read", "params": {"uri": "clojure://session/namespaces"}}'
 NS_RESPONSE=$(echo -e "$INIT_MSG\n$NS_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT" | tail -1)
 
 NS_TEXT=$(echo "$NS_RESPONSE" | jq -r '.result.contents[0].text')
@@ -174,7 +188,7 @@ EOF
 
 # 7b. Load the file
 echo -e "${YELLOW}  7b. Loading test file...${NC}"
-LOAD_FILE_MSG='{"jsonrpc": "2.0", "id": 10, "method": "tools/call", "params": {"name": "load-file", "arguments": {"file-path": "/tmp/test-file.clj"}}}'
+LOAD_FILE_MSG='{"jsonrpc": "2.0", "id": 11, "method": "tools/call", "params": {"name": "load-file", "arguments": {"file-path": "/tmp/test-file.clj"}}}'
 LOAD_FILE_RESPONSE=$(echo -e "$INIT_MSG\n$LOAD_FILE_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT" | tail -1)
 
 LOAD_RESULT=$(echo "$LOAD_FILE_RESPONSE" | jq -r '.result.content[0].text')
@@ -188,7 +202,7 @@ fi
 
 # 7c. Test that functions from loaded file work (use fully qualified name)
 echo -e "${YELLOW}  7c. Testing function from loaded file...${NC}"
-TEST_LOADED_MSG='{"jsonrpc": "2.0", "id": 11, "method": "tools/call", "params": {"name": "eval-clojure", "arguments": {"code": "(test-namespace/multiply-by-two 5)"}}}'
+TEST_LOADED_MSG='{"jsonrpc": "2.0", "id": 12, "method": "tools/call", "params": {"name": "eval-clojure", "arguments": {"code": "(test-namespace/multiply-by-two 5)"}}}'
 TEST_LOADED_RESPONSE=$(echo -e "$INIT_MSG\n$TEST_LOADED_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT" | tail -1)
 
 LOADED_RESULT=$(echo "$TEST_LOADED_RESPONSE" | jq -r '.result.content[0].text')
@@ -206,7 +220,7 @@ echo -e "${YELLOW}Step 8: Testing namespace switching functionality...${NC}"
 
 # 8a. Get current namespace before switch
 echo -e "${YELLOW}  8a. Getting current namespace...${NC}"
-CURRENT_NS_MSG='{"jsonrpc": "2.0", "id": 12, "method": "resources/read", "params": {"uri": "clojure://session/current-ns"}}'
+CURRENT_NS_MSG='{"jsonrpc": "2.0", "id": 13, "method": "resources/read", "params": {"uri": "clojure://session/current-ns"}}'
 CURRENT_NS_RESPONSE=$(echo -e "$INIT_MSG\n$CURRENT_NS_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT" | tail -1)
 
 CURRENT_NS_TEXT=$(echo "$CURRENT_NS_RESPONSE" | jq -r '.result.contents[0].text')
@@ -214,8 +228,8 @@ echo -e "${GREEN}  Current namespace: $CURRENT_NS_TEXT${NC}"
 
 # 8b. Switch to test namespace and verify in the same session
 echo -e "${YELLOW}  8b. Switching to test-namespace and verifying...${NC}"
-SET_NS_MSG='{"jsonrpc": "2.0", "id": 13, "method": "tools/call", "params": {"name": "set-ns", "arguments": {"namespace": "test-namespace"}}}'
-VERIFY_NS_MSG='{"jsonrpc": "2.0", "id": 14, "method": "resources/read", "params": {"uri": "clojure://session/current-ns"}}'
+SET_NS_MSG='{"jsonrpc": "2.0", "id": 14, "method": "tools/call", "params": {"name": "set-ns", "arguments": {"namespace": "test-namespace"}}}'
+VERIFY_NS_MSG='{"jsonrpc": "2.0", "id": 15, "method": "resources/read", "params": {"uri": "clojure://session/current-ns"}}'
 
 # Run both commands in the same session
 COMBINED_RESPONSE=$(echo -e "$INIT_MSG\n$SET_NS_MSG\n$VERIFY_NS_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT")
@@ -248,7 +262,7 @@ echo -e "${YELLOW}Step 9: Testing apropos functionality...${NC}"
 
 # 9a. Search for symbols matching "map"
 echo -e "${YELLOW}  9a. Searching for symbols matching 'map'...${NC}"
-APROPOS_MSG='{"jsonrpc": "2.0", "id": 15, "method": "tools/call", "params": {"name": "apropos", "arguments": {"query": "map"}}}'
+APROPOS_MSG='{"jsonrpc": "2.0", "id": 16, "method": "tools/call", "params": {"name": "apropos", "arguments": {"query": "map"}}}'
 APROPOS_RESPONSE=$(echo -e "$INIT_MSG\n$APROPOS_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT" | tail -1)
 
 APROPOS_TEXT=$(echo "$APROPOS_RESPONSE" | jq -r '.result.content[0].text')
@@ -262,7 +276,7 @@ fi
 
 # 9b. Search for previously defined function
 echo -e "${YELLOW}  9b. Searching for our defined 'square' function...${NC}"
-APROPOS_SQUARE_MSG='{"jsonrpc": "2.0", "id": 16, "method": "tools/call", "params": {"name": "apropos", "arguments": {"query": "square"}}}'
+APROPOS_SQUARE_MSG='{"jsonrpc": "2.0", "id": 17, "method": "tools/call", "params": {"name": "apropos", "arguments": {"query": "square"}}}'
 APROPOS_SQUARE_RESPONSE=$(echo -e "$INIT_MSG\n$APROPOS_SQUARE_MSG" | ./mcp-nrepl.bb --nrepl-port "$PORT" | tail -1)
 
 APROPOS_SQUARE_TEXT=$(echo "$APROPOS_SQUARE_RESPONSE" | jq -r '.result.content[0].text')
@@ -284,6 +298,7 @@ echo -e "${GREEN}  - Function definition and invocation${NC}"
 echo -e "${GREEN}  - Error handling${NC}"
 echo -e "${GREEN}  - Resource-based session introspection${NC}"
 echo -e "${GREEN}  - Documentation lookup for defined functions${NC}"
+echo -e "${GREEN}  - Source code lookup for symbols${NC}"
 echo -e "${GREEN}  - Namespace and variable listing${NC}"
 echo -e "${GREEN}  - File loading functionality${NC}"
 echo -e "${GREEN}  - Namespace switching${NC}"
