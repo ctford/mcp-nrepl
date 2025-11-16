@@ -18,6 +18,17 @@ This project provides a bridge between the Model Context Protocol and nREPL, all
 - **Session Introspection**: Resources for vars, namespaces, docs, and source
 - **Comprehensive Testing**: Pure function unit tests + full E2E integration tests
 
+## How It Works
+
+MCP-nREPL acts as a bridge between the Model Context Protocol and your nREPL session:
+
+- **Direct REPL Access**: Provides MCP clients (like Claude) with the ability to evaluate Clojure code in your running nREPL session
+- **Localhost Only**: Connects to nREPL servers on localhost (typically used for local development)
+- **Shared Session**: All evaluations happen in the same nREPL session, maintaining state between calls
+- **Development Tool**: Designed for interactive development workflows where you want AI assistance with Clojure code
+
+This is equivalent to giving an MCP client access to your REPL prompt - it can define functions, load files, switch namespaces, and evaluate any Clojure expression you could run yourself.
+
 ## Requirements
 
 - [Babashka](https://babashka.org/) installed and available as `bb`
