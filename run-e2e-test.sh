@@ -288,6 +288,42 @@ else
     exit 1
 fi
 
+# Step 10: Test direct eval mode (--eval flag)
+echo -e "${YELLOW}Step 10: Testing direct eval mode...${NC}"
+
+# 10a. Test basic arithmetic
+echo -e "${YELLOW}  10a. Testing basic arithmetic...${NC}"
+EVAL_RESULT=$(./mcp-nrepl.bb --eval "(+ 1 2 3)" 2>&1)
+if [ "$EVAL_RESULT" = "6" ]; then
+    echo -e "${GREEN}  Direct eval works: (+ 1 2 3) = $EVAL_RESULT${NC}"
+else
+    echo -e "${RED}  Direct eval test failed${NC}"
+    echo "  Expected: 6, Got: $EVAL_RESULT"
+    exit 1
+fi
+
+# 10b. Test string manipulation
+echo -e "${YELLOW}  10b. Testing string manipulation...${NC}"
+EVAL_STRING=$(./mcp-nrepl.bb --eval '(str "Hello" " " "World")' 2>&1)
+if [ "$EVAL_STRING" = '"Hello World"' ]; then
+    echo -e "${GREEN}  String eval works: got $EVAL_STRING${NC}"
+else
+    echo -e "${RED}  String eval test failed${NC}"
+    echo "  Expected: \"Hello World\", Got: $EVAL_STRING"
+    exit 1
+fi
+
+# 10c. Test error handling in eval mode
+echo -e "${YELLOW}  10c. Testing error handling in eval mode...${NC}"
+EVAL_ERROR=$(./mcp-nrepl.bb --eval "(/ 1 0)" 2>&1)
+if echo "$EVAL_ERROR" | grep -q "ArithmeticException"; then
+    echo -e "${GREEN}  Error handling works in eval mode${NC}"
+else
+    echo -e "${RED}  Error handling test failed in eval mode${NC}"
+    echo "  Response: $EVAL_ERROR"
+    exit 1
+fi
+
 # Clean up test file
 rm -f /tmp/test-file.clj
 
@@ -304,3 +340,4 @@ echo -e "${GREEN}  - File loading functionality${NC}"
 echo -e "${GREEN}  - Namespace switching${NC}"
 echo -e "${GREEN}  - Current namespace resource${NC}"
 echo -e "${GREEN}  - Apropos symbol search${NC}"
+echo -e "${GREEN}  - Direct eval mode (--eval flag)${NC}"

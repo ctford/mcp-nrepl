@@ -524,20 +524,23 @@
   [["-p" "--nrepl-port PORT" "Connect to nREPL server on specified port"
     :parse-fn parse-port
     :validate [integer? "Must be a valid port number"]]
+   ["-e" "--eval CODE" "Evaluate Clojure code and print result (direct mode)"]
    ["-h" "--help" "Show this help message"]])
 
 (defn usage [options-summary]
   (->> ["mcp-nrepl - MCP server bridge to nREPL"
         ""
         "Usage: mcp-nrepl.bb [OPTIONS]"
+        "       mcp-nrepl.bb --eval CODE"
         ""
         "Options:"
         options-summary
         ""
-        "If no port is specified, reads from .nrepl-port file in current directory."
+        "Modes:"
+        "  MCP Server Mode (default): Reads MCP JSON-RPC messages from stdin"
+        "  Direct Eval Mode (--eval): Evaluates code and prints result"
         ""
-        "The script accepts MCP JSON-RPC messages on stdin and provides:"
-        "  - eval-clojure tool for evaluating Clojure code via nREPL"]
+        "If no port is specified, reads from .nrepl-port file in current directory."]
        (str/join \newline)))
 
 (defn error-msg [errors]
@@ -549,12 +552,40 @@
     (cond
       (:help options)
       {:exit-message (usage summary) :ok? true}
-      
+
       errors
       {:exit-message (error-msg errors)}
-      
+
       :else
       {:options options})))
+
+(defn run-eval-mode [code]
+  "Direct evaluation mode - evaluate code and print result to stdout"
+  (try
+    ;; Ensure nREPL connection is established
+    (ensure-nrepl-connection)
+
+    ;; Evaluate the code
+    (let [responses (eval-clojure-code code)
+          decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))
+          extract-field (fn [field]
+                          (->> responses
+                               (keep #(get % field))
+                               (map decode-if-bytes)))
+          values (extract-field "value")
+          output (str/join "\n" (extract-field "out"))
+          errors (str/join "\n" (extract-field "err"))
+          result-text (str/join "\n"
+                                (concat
+                                 (when-not (str/blank? output) [output])
+                                 (when-not (str/blank? errors) [errors])
+                                 values))]
+      (println (if (str/blank? result-text) "nil" result-text))
+      (System/exit 0))
+    (catch Exception e
+      (binding [*out* *err*]
+        (println (str "Error: " (.getMessage e))))
+      (System/exit 1))))
 
 (defn main [& args]
   (let [{:keys [options exit-message ok?]} (validate-args args)]
@@ -566,13 +597,20 @@
         ;; Set nREPL port from options if provided
         (when-let [port (:nrepl-port options)]
           (swap! state assoc :nrepl-port port))
-        
-        (loop []
-          (when-let [line (read-line)]
-            (let [response (process-message line)]
-              (println (json/generate-string response))
-              (flush))
-            (recur)))
+
+        ;; Check if we're in eval mode or MCP server mode
+        (if-let [code (:eval options)]
+          ;; Direct eval mode - evaluate code and exit
+          (run-eval-mode code)
+
+          ;; MCP server mode - read JSON-RPC messages from stdin
+          (loop []
+            (when-let [line (read-line)]
+              (let [response (process-message line)]
+                (println (json/generate-string response))
+                (flush))
+              (recur))))
+
         (catch Exception e
           (log-error "Fatal error: %s" (.getMessage e))
           (System/exit 1))
