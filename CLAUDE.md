@@ -111,11 +111,21 @@ echo "1667" > .nrepl-port
 ```
 
 ### Quick Evaluation
+
+**Direct eval mode (--eval flag, fastest):**
 ```bash
 # Start server first
 ./start-nrepl.sh
 
-# Then evaluate in another terminal
+# Direct evaluation (~28ms per call)
+./mcp-nrepl.bb --eval "(+ 1 2 3)"
+./mcp-nrepl.bb -e "(defn greet [name] (str \"Hello, \" name \"!\"))"
+./mcp-nrepl.bb -e "(greet \"World\")"
+```
+
+**Wrapper script (eval-clojure.sh):**
+```bash
+# Alternative using wrapper script
 ./eval-clojure.sh "(+ 1 2 3)"
 ./eval-clojure.sh "(defn greet [name] (str \"Hello, \" name \"!\"))"
 ./eval-clojure.sh "(greet \"World\")"

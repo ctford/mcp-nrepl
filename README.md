@@ -8,12 +8,15 @@ This project provides a bridge between the Model Context Protocol and nREPL, all
 
 ## Features
 
+- **Dual Mode Operation**: MCP server mode + direct eval mode (`--eval` flag)
 - **Minimal Dependencies**: Single Babashka script with no external dependencies
-- **Fast Startup**: Minimal overhead and quick initialization
-- **MCP Compliant**: Implements core MCP protocol for tool integration
+- **Fast Execution**: ~28ms per evaluation in direct mode
+- **MCP Compliant**: Implements core MCP protocol with tools and resources
 - **nREPL Integration**: Connects to existing nREPL servers via TCP
 - **Auto-Discovery**: Reads nREPL port from `.nrepl-port` file
-- **Comprehensive Testing**: Unit tests for message translation and protocol handling
+- **Rich Tooling**: Code eval, file loading, namespace switching, symbol search
+- **Session Introspection**: Resources for vars, namespaces, docs, and source
+- **Comprehensive Testing**: Pure function unit tests + full E2E integration tests
 
 ## Requirements
 
@@ -32,15 +35,27 @@ Use the provided helper script to start a test nREPL server:
 
 This will start a Babashka nREPL server and write the port to `.nrepl-port`.
 
-### 2. Run the MCP Server
+### 2a. Direct Eval Mode (Fastest)
+
+Evaluate Clojure code directly from the command line:
 
 ```bash
-bb mcp-nrepl.bb
+./mcp-nrepl.bb --eval "(+ 1 2 3)"
+# Output: 6
+
+./mcp-nrepl.bb -e "(str \"Hello\" \" \" \"World\")"
+# Output: "Hello World"
+```
+
+### 2b. MCP Server Mode
+
+Run as an MCP server for AI assistants and other MCP clients:
+
+```bash
+./mcp-nrepl.bb
 ```
 
 The server will read from stdin and write to stdout using JSON-RPC 2.0 protocol.
-
-### 3. Test with a Simple MCP Client
 
 Example initialization message:
 ```json
@@ -56,28 +71,36 @@ Example tool call:
 
 ### Running Tests
 
-Execute the test suite:
+The project has two test suites:
 
+**Unit Tests (Pure Functions, ~1 second)**:
 ```bash
-./run-tests.sh
+./run-unit-tests.sh
 ```
 
-Or directly with Babashka:
+Tests pure functions with no side effects - MCP handlers, data transformation, error builders.
 
+**End-to-End Tests (Full Integration, ~5 seconds)**:
 ```bash
-bb test/mcp_nrepl_test.bb
+./run-e2e-test.sh
 ```
+
+Tests complete workflows including MCP protocol, nREPL eval, resources, and direct eval mode.
 
 ### Project Structure
 
 ```
 mcp-nrepl/
-├── mcp-nrepl.bb          # Main MCP server implementation
-├── start-nrepl.sh        # Helper script to start nREPL for testing
-├── run-tests.sh          # Test runner script
+├── mcp-nrepl.bb          # Main MCP server implementation (executable)
+├── start-nrepl.sh        # Helper script to start nREPL server
+├── eval-clojure.sh       # Convenience wrapper for evaluation
+├── run-unit-tests.sh     # Unit test runner
+├── run-e2e-test.sh       # End-to-end test runner
 ├── test/
-│   └── mcp_nrepl_test.bb # Comprehensive unit tests
-├── README.md             # This file
+│   ├── unit_test.bb      # Pure function unit tests
+│   └── mcp_nrepl_test.bb # Legacy tests (deprecated)
+├── README.md             # User documentation
+├── CLAUDE.md             # Development guide
 └── .gitignore            # Git ignore patterns
 ```
 
@@ -86,18 +109,43 @@ mcp-nrepl/
 ### MCP Methods Implemented
 
 - **initialize**: Protocol handshake and capability negotiation
-- **tools/list**: Returns available tools (eval-clojure)
-- **tools/call**: Executes Clojure code via nREPL
+- **tools/list**: Returns available tools
+- **tools/call**: Executes tool operations
+- **resources/list**: Returns available resources
+- **resources/read**: Reads resource data
 
-### Tool: eval-clojure
+### Available Tools
 
-Evaluates Clojure code using the connected nREPL server.
+**eval-clojure** - Evaluate Clojure code expressions
+- Parameters: `code` (string, required)
+- Returns: Evaluation result, output, and any errors
 
-**Parameters:**
-- `code` (string, required): The Clojure code to evaluate
+**load-file** - Load and evaluate a Clojure file
+- Parameters: `file-path` (string, required)
+- Returns: Success message or evaluation output
+- Validates file existence before loading
 
-**Returns:**
-- Evaluation result, output, and any errors from nREPL
+**set-ns** - Switch to a different namespace
+- Parameters: `namespace` (string, required)
+- Returns: Confirmation of namespace switch
+- Creates namespace if it doesn't exist
+
+**apropos** - Search for symbols matching a pattern
+- Parameters: `query` (string, required)
+- Returns: List of matching symbols with fully-qualified names
+- Searches both built-in and user-defined symbols
+
+### Available Resources
+
+**clojure://session/vars** - List currently defined variables in the session
+
+**clojure://session/namespaces** - List all loaded namespaces
+
+**clojure://session/current-ns** - Get the current default namespace
+
+**clojure://doc/{symbol}** - Get documentation for a symbol (e.g., `clojure://doc/map`)
+
+**clojure://source/{symbol}** - Get source code for a symbol (e.g., `clojure://source/map`)
 
 ## Architecture
 
@@ -119,8 +167,8 @@ The implementation consists of several key components:
 
 - **Single Session**: No support for parallel nREPL sessions
 - **Local Only**: Only connects to localhost nREPL servers
-- **Basic Tools**: Currently only provides code evaluation
 - **Synchronous**: No async operation support
+- **Basic nREPL**: Uses core eval operations, not advanced middleware ops like `info` or `complete`
 
 ## Contributing
 
@@ -128,4 +176,4 @@ This is a minimal implementation focused on core functionality. Contributions sh
 
 ## License
 
-MIT License
+Eclipse Public License v1.0 - See LICENSE file for details
