@@ -98,21 +98,29 @@
 
 ;; Test resources list contains all session introspection resources
 (deftest resources-list-contains-all-session-introspection-resources
-  (testing "Resources list includes session vars, namespaces, and current-ns"
+  (testing "Resources list includes all resources including URI templates"
     (let [result (mcp-nrepl/handle-resources-list)
           expected {"resources"
                     [{"uri" "clojure://session/vars"
                       "name" "Session Variables"
                       "description" "Currently defined variables in the REPL session"
                       "mimeType" "application/json"}
-                     {"uri" "clojure://session/namespaces"  
+                     {"uri" "clojure://session/namespaces"
                       "name" "Session Namespaces"
                       "description" "Currently loaded namespaces in the REPL session"
                       "mimeType" "application/json"}
                      {"uri" "clojure://session/current-ns"
                       "name" "Current Namespace"
                       "description" "The current default namespace in the REPL session"
-                      "mimeType" "text/plain"}]}]
+                      "mimeType" "text/plain"}
+                     {"uri" "clojure://doc/{symbol}"
+                      "name" "Symbol Documentation"
+                      "description" "Get documentation for any Clojure symbol (URI template - replace {symbol} with the symbol name)"
+                      "mimeType" "text/plain"}
+                     {"uri" "clojure://source/{symbol}"
+                      "name" "Symbol Source Code"
+                      "description" "Get source code for any Clojure symbol (URI template - replace {symbol} with the symbol name)"
+                      "mimeType" "text/clojure"}]}]
       (is (= expected result)))))
 
 ;; Test error responses follow JSON-RPC error format correctly
@@ -152,12 +160,72 @@
           json-str (json/generate-string data)
           parsed (json/parse-string json-str)]
       (is (= data parsed))))
-  
+
   (testing "MCP message structures serialize and deserialize correctly"
     (let [msg {"jsonrpc" "2.0" "id" 1 "method" "test"}
           json-str (json/generate-string msg)
           parsed (json/parse-string json-str)]
       (is (= msg parsed)))))
+
+;; Test helper function: decode-if-bytes
+(deftest decode-if-bytes-handles-bytes-and-strings
+  (testing "Bytes are converted to strings"
+    (let [bytes (.getBytes "test")]
+      (is (= "test" (mcp-nrepl/decode-if-bytes bytes)))))
+
+  (testing "Strings are preserved"
+    (is (= "hello" (mcp-nrepl/decode-if-bytes "hello"))))
+
+  (testing "Other types are converted to strings"
+    (is (= "42" (mcp-nrepl/decode-if-bytes 42)))
+    (is (= "true" (mcp-nrepl/decode-if-bytes true)))))
+
+;; Test helper function: extract-field-from-responses
+(deftest extract-field-from-responses-extracts-and-decodes
+  (testing "Extracts field from multiple responses and decodes bytes"
+    (let [responses [{"value" (.getBytes "42")}
+                     {"value" "hello"}
+                     {"other" "field"}
+                     {"value" 123}]]
+      (is (= ["42" "hello" "123"] (mcp-nrepl/extract-field-from-responses responses "value")))))
+
+  (testing "Returns empty sequence when field not found"
+    (let [responses [{"other" "field"}]]
+      (is (empty? (mcp-nrepl/extract-field-from-responses responses "value"))))))
+
+;; Test helper function: format-tool-result
+(deftest format-tool-result-formats-responses-correctly
+  (testing "Formats responses with values, output, and errors"
+    (let [responses [{"value" "42"}
+                     {"out" "debug output"}
+                     {"err" "warning"}]
+          result (mcp-nrepl/format-tool-result responses)
+          expected {"content" [{"type" "text"
+                               "text" "debug output\nwarning\n42"}]}]
+      (is (= expected result))))
+
+  (testing "Uses default message when result is empty"
+    (let [responses []
+          result (mcp-nrepl/format-tool-result responses :default-message "Success!")
+          expected {"content" [{"type" "text"
+                               "text" "Success!"}]}]
+      (is (= expected result))))
+
+  (testing "Returns 'nil' when no default message and empty responses"
+    (let [responses []
+          result (mcp-nrepl/format-tool-result responses)
+          expected {"content" [{"type" "text"
+                               "text" "nil"}]}]
+      (is (= expected result)))))
+
+;; Test helper function: format-tool-error
+(deftest format-tool-error-creates-error-response
+  (testing "Creates properly formatted error response"
+    (let [result (mcp-nrepl/format-tool-error "Test error message")
+          expected {"isError" true
+                    "content" [{"type" "text"
+                               "text" "Test error message"}]}]
+      (is (= expected result)))))
 
 ;; Main test runner
 (defn run-all-tests []

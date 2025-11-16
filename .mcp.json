@@ -1,9 +1,11 @@
 {
+  "$schema": "https://modelcontextprotocol.io/schema/mcp.json",
   "mcpServers": {
     "mcp-nrepl": {
-      "type": "stdio", 
+      "type": "stdio",
       "command": "bb",
-      "args": ["mcp-nrepl.bb"]
+      "args": ["mcp-nrepl.bb"],
+      "_comment": "Port configuration: By default, mcp-nrepl reads the nREPL port from .nrepl-port file. To specify a different port, add '--nrepl-port', '1667' to the args array. Example: ['mcp-nrepl.bb', '--nrepl-port', '1667']"
     }
   }
 }

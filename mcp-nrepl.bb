@@ -22,6 +22,11 @@
   (binding [*out* *err*]
     (println (str "[ERROR] " (apply format msg args)))))
 
+(defn decode-if-bytes
+  "Convert bytes to string, or convert value to string if not bytes"
+  [v]
+  (if (bytes? v) (String. v) (str v)))
+
 (defn parse-port [port-str]
   "Pure function: parse port string to integer, returns nil if invalid"
   (when port-str
@@ -73,6 +78,8 @@
   (try
     (let [in (java.io.PushbackInputStream. (.getInputStream socket))
           response (bencode/read-bencode in)]
+      (when-not (map? response)
+        (log-error "Invalid nREPL response (not a map): %s" response))
       response)
     (catch Exception e
       (log-error "Failed to read nREPL response: %s" (.getMessage e))
@@ -92,150 +99,113 @@
             (create-session)
             (#(swap! state assoc :session-id %)))))
 
-(defn eval-clojure-code [code]
+(defn collect-nrepl-responses
+  "Collect all nREPL responses until a 'status' field is received"
+  [socket]
+  (loop [responses []]
+    (if-let [response (read-nrepl-response socket)]
+      (let [updated-responses (conj responses response)]
+        (if (contains? response "status")
+          updated-responses
+          (recur updated-responses)))
+      responses)))
+
+(defn eval-nrepl-code
+  "Evaluate code via nREPL and return all responses.
+   This is the common pattern used by all resource and tool functions."
+  [code]
   (ensure-nrepl-connection)
   (let [{:keys [nrepl-socket session-id]} @state]
-    (if nrepl-socket
-      (let [socket nrepl-socket
-            eval-msg {"op" "eval"
-                      "code" code
-                      "session" session-id
-                      "id" (str (java.util.UUID/randomUUID))}]
-        (if (send-nrepl-message socket eval-msg)
-          (loop [responses []]
-            (if-let [response (read-nrepl-response socket)]
-              (let [updated-responses (conj responses response)]
-                (if (contains? response "status")
-                  updated-responses
-                  (recur updated-responses)))
-              (throw (Exception. "Failed to read nREPL response"))))
-          (throw (Exception. "Failed to send eval message to nREPL"))))
-      (throw (Exception. "No nREPL connection available")))))
+    (when nrepl-socket
+      (let [msg {"op" "eval"
+                 "code" code
+                 "session" session-id
+                 "id" (str (java.util.UUID/randomUUID))}]
+        (when (send-nrepl-message nrepl-socket msg)
+          (collect-nrepl-responses nrepl-socket))))))
+
+(defn eval-clojure-code [code]
+  "Evaluate Clojure code and return responses. Throws exception on failure."
+  (if-let [responses (eval-nrepl-code code)]
+    responses
+    (throw (Exception. "No nREPL connection available"))))
 
 ;; nREPL Resource Operations
 (defn get-doc [symbol]
-  (ensure-nrepl-connection)
-  (let [{:keys [nrepl-socket session-id]} @state]
-    (if nrepl-socket
-      (let [socket nrepl-socket
-            doc-msg {"op" "eval"
-                     "code" (str "(clojure.repl/doc " symbol ")")
-                     "session" session-id
-                     "id" (str (java.util.UUID/randomUUID))}]
-        (when (send-nrepl-message socket doc-msg)
-          (let [responses (loop [responses []]
-                           (if-let [response (read-nrepl-response socket)]
-                             (let [updated-responses (conj responses response)]
-                               (if (contains? response "status")
-                                 updated-responses
-                                 (recur updated-responses)))
-                             responses))
-                decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))]
-            (->> responses
-                 (keep #(get % "out"))
-                 (map decode-if-bytes)
-                 (str/join "")
-                 str/trim))))
-      nil)))
+  "Get documentation for a symbol by evaluating (clojure.repl/doc symbol)"
+  (when-let [responses (eval-nrepl-code (str "(clojure.repl/doc " symbol ")"))]
+    (->> responses
+         (keep #(get % "out"))
+         (map decode-if-bytes)
+         (str/join "")
+         str/trim)))
 
 (defn get-source [symbol]
-  (ensure-nrepl-connection)
-  (let [{:keys [nrepl-socket session-id]} @state]
-    (if nrepl-socket
-      (let [socket nrepl-socket
-            source-msg {"op" "eval"
-                        "code" (str "(clojure.repl/source " symbol ")")
-                        "session" session-id
-                        "id" (str (java.util.UUID/randomUUID))}]
-        (when (send-nrepl-message socket source-msg)
-          (let [responses (loop [responses []]
-                           (if-let [response (read-nrepl-response socket)]
-                             (let [updated-responses (conj responses response)]
-                               (if (contains? response "status")
-                                 updated-responses
-                                 (recur updated-responses)))
-                             responses))
-                decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))]
-            (->> responses
-                 (keep #(get % "out"))
-                 (map decode-if-bytes)
-                 (str/join "")
-                 str/trim))))
-      nil)))
+  "Get source code for a symbol by evaluating (clojure.repl/source symbol)"
+  (when-let [responses (eval-nrepl-code (str "(clojure.repl/source " symbol ")"))]
+    (->> responses
+         (keep #(get % "out"))
+         (map decode-if-bytes)
+         (str/join "")
+         str/trim)))
 
 (defn get-session-vars []
-  (ensure-nrepl-connection)
-  (let [{:keys [nrepl-socket session-id]} @state]
-    (if nrepl-socket
-      (let [socket nrepl-socket
-            vars-msg {"op" "eval"
-                      "code" "(keys (ns-publics *ns*))"
-                      "session" session-id
-                      "id" (str (java.util.UUID/randomUUID))}]
-        (when (send-nrepl-message socket vars-msg)
-          (let [responses (loop [responses []]
-                           (if-let [response (read-nrepl-response socket)]
-                             (let [updated-responses (conj responses response)]
-                               (if (contains? response "status")
-                                 updated-responses
-                                 (recur updated-responses)))
-                             responses))
-                decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))]
-            (->> responses
-                 (keep #(get % "value"))
-                 (map decode-if-bytes)
-                 first))))
-      nil)))
+  "Get list of public variables in current namespace"
+  (when-let [responses (eval-nrepl-code "(keys (ns-publics *ns*))")]
+    (->> responses
+         (keep #(get % "value"))
+         (map decode-if-bytes)
+         first)))
 
 (defn get-session-namespaces []
-  (ensure-nrepl-connection)
-  (let [{:keys [nrepl-socket session-id]} @state]
-    (if nrepl-socket
-      (let [socket nrepl-socket
-            ns-msg {"op" "eval"
-                    "code" "(map str (all-ns))"
-                    "session" session-id
-                    "id" (str (java.util.UUID/randomUUID))}]
-        (when (send-nrepl-message socket ns-msg)
-          (let [responses (loop [responses []]
-                           (if-let [response (read-nrepl-response socket)]
-                             (let [updated-responses (conj responses response)]
-                               (if (contains? response "status")
-                                 updated-responses
-                                 (recur updated-responses)))
-                             responses))
-                decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))]
-            (->> responses
-                 (keep #(get % "value"))
-                 (map decode-if-bytes)
-                 first))))
-      nil)))
+  "Get list of all loaded namespaces"
+  (when-let [responses (eval-nrepl-code "(map str (all-ns))")]
+    (->> responses
+         (keep #(get % "value"))
+         (map decode-if-bytes)
+         first)))
 
 (defn get-current-namespace []
-  (ensure-nrepl-connection)
-  (let [{:keys [nrepl-socket session-id]} @state]
-    (if nrepl-socket
-      (let [socket nrepl-socket
-            ns-msg {"op" "eval"
-                    "code" "(str *ns*)"
-                    "session" session-id
-                    "id" (str (java.util.UUID/randomUUID))}]
-        (when (send-nrepl-message socket ns-msg)
-          (let [responses (loop [responses []]
-                           (if-let [response (read-nrepl-response socket)]
-                             (let [updated-responses (conj responses response)]
-                               (if (contains? response "status")
-                                 updated-responses
-                                 (recur updated-responses)))
-                             responses))
-                decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))]
-            (->> responses
-                 (keep #(get % "value"))
-                 (map decode-if-bytes)
-                 first))))
-      nil)))
+  "Get the current default namespace"
+  (when-let [responses (eval-nrepl-code "(str *ns*)")]
+    (->> responses
+         (keep #(get % "value"))
+         (map decode-if-bytes)
+         first)))
 
 ;; MCP Protocol handlers
+
+;; Tool response formatting helpers
+(defn extract-field-from-responses
+  "Extract and decode a field from nREPL responses"
+  [responses field]
+  (->> responses
+       (keep #(get % field))
+       (map decode-if-bytes)))
+
+(defn format-tool-result
+  "Format nREPL responses into a tool result"
+  [responses & {:keys [default-message]}]
+  (let [values (extract-field-from-responses responses "value")
+        output (str/join "\n" (extract-field-from-responses responses "out"))
+        errors (str/join "\n" (extract-field-from-responses responses "err"))
+        result-text (str/join "\n"
+                              (concat
+                               (when-not (str/blank? output) [output])
+                               (when-not (str/blank? errors) [errors])
+                               values))]
+    {"content" [{"type" "text"
+                "text" (if (str/blank? result-text)
+                         (or default-message "nil")
+                         result-text)}]}))
+
+(defn format-tool-error
+  "Format an error message as a tool response"
+  [error-msg]
+  {"isError" true
+   "content" [{"type" "text"
+              "text" error-msg}]})
+
 (defn handle-initialize [params]
   (let [client-version (get params "protocolVersion")
         capabilities (get params "capabilities" {})]
@@ -287,133 +257,50 @@
       "eval-clojure"
       (let [code (get arguments "code")]
         (if (str/blank? code)
-          {"isError" true
-           "content" [{"type" "text"
-                      "text" "Error: Code parameter is required and cannot be empty"}]}
+          (format-tool-error "Error: Code parameter is required and cannot be empty")
           (try
-            (let [responses (eval-clojure-code code)
-                  decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))
-                  extract-field (fn [field] 
-                                  (->> responses
-                                       (keep #(get % field))
-                                       (map decode-if-bytes)))
-                  values (extract-field "value")
-                  output (str/join "\n" (extract-field "out"))
-                  errors (str/join "\n" (extract-field "err"))
-                  result-text (str/join "\n" 
-                                        (concat
-                                         (when-not (str/blank? output) [output])
-                                         (when-not (str/blank? errors) [errors])
-                                         values))]
-              {"content" [{"type" "text"
-                          "text" (if (str/blank? result-text)
-                                   "nil"
-                                   result-text)}]})
+            (format-tool-result (eval-clojure-code code))
             (catch Exception e
-              {"isError" true
-               "content" [{"type" "text"
-                          "text" (str "Error evaluating Clojure code: " (.getMessage e))}]}))))
+              (format-tool-error (str "Error evaluating Clojure code: " (.getMessage e)))))))
       
       "load-file"
       (let [file-path (get arguments "file-path")]
         (if (str/blank? file-path)
-          {"isError" true
-           "content" [{"type" "text"
-                      "text" "Error: file-path parameter is required and cannot be empty"}]}
+          (format-tool-error "Error: file-path parameter is required and cannot be empty")
           (try
             (if (fs/exists? file-path)
               (let [code (str "(load-file \"" file-path "\")")
-                    responses (eval-clojure-code code)
-                    decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))
-                    extract-field (fn [field] 
-                                    (->> responses
-                                         (keep #(get % field))
-                                         (map decode-if-bytes)))
-                    values (extract-field "value")
-                    output (str/join "\n" (extract-field "out"))
-                    errors (str/join "\n" (extract-field "err"))
-                    result-text (str/join "\n" 
-                                          (concat
-                                           (when-not (str/blank? output) [output])
-                                           (when-not (str/blank? errors) [errors])
-                                           values))]
-                {"content" [{"type" "text"
-                            "text" (if (str/blank? result-text)
-                                     (str "Successfully loaded file: " file-path)
-                                     result-text)}]})
-              {"isError" true
-               "content" [{"type" "text"
-                          "text" (str "Error: File not found: " file-path)}]})
+                    responses (eval-clojure-code code)]
+                (format-tool-result responses
+                                    :default-message (str "Successfully loaded file: " file-path)))
+              (format-tool-error (str "Error: File not found: " file-path)))
             (catch Exception e
-              {"isError" true
-               "content" [{"type" "text"
-                          "text" (str "Error loading file: " (.getMessage e))}]}))))
+              (format-tool-error (str "Error loading file: " (.getMessage e)))))))
       
       "set-ns"
       (let [namespace (get arguments "namespace")]
         (if (str/blank? namespace)
-          {"isError" true
-           "content" [{"type" "text"
-                      "text" "Error: namespace parameter is required and cannot be empty"}]}
+          (format-tool-error "Error: namespace parameter is required and cannot be empty")
           (try
             (let [code (str "(in-ns '" namespace ")")
-                  responses (eval-clojure-code code)
-                  decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))
-                  extract-field (fn [field]
-                                  (->> responses
-                                       (keep #(get % field))
-                                       (map decode-if-bytes)))
-                  values (extract-field "value")
-                  output (str/join "\n" (extract-field "out"))
-                  errors (str/join "\n" (extract-field "err"))
-                  result-text (str/join "\n"
-                                        (concat
-                                         (when-not (str/blank? output) [output])
-                                         (when-not (str/blank? errors) [errors])
-                                         values))]
-              {"content" [{"type" "text"
-                          "text" (if (str/blank? result-text)
-                                   (str "Successfully switched to namespace: " namespace)
-                                   result-text)}]})
+                  responses (eval-clojure-code code)]
+              (format-tool-result responses
+                                  :default-message (str "Successfully switched to namespace: " namespace)))
             (catch Exception e
-              {"isError" true
-               "content" [{"type" "text"
-                          "text" (str "Error switching namespace: " (.getMessage e))}]}))))
+              (format-tool-error (str "Error switching namespace: " (.getMessage e)))))))
 
       "apropos"
       (let [query (get arguments "query")]
         (if (str/blank? query)
-          {"isError" true
-           "content" [{"type" "text"
-                      "text" "Error: query parameter is required and cannot be empty"}]}
+          (format-tool-error "Error: query parameter is required and cannot be empty")
           (try
             (let [code (str "(require 'clojure.repl) (clojure.repl/apropos \"" query "\")")
-                  responses (eval-clojure-code code)
-                  decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))
-                  extract-field (fn [field]
-                                  (->> responses
-                                       (keep #(get % field))
-                                       (map decode-if-bytes)))
-                  values (extract-field "value")
-                  output (str/join "\n" (extract-field "out"))
-                  errors (str/join "\n" (extract-field "err"))
-                  result-text (str/join "\n"
-                                        (concat
-                                         (when-not (str/blank? output) [output])
-                                         (when-not (str/blank? errors) [errors])
-                                         values))]
-              {"content" [{"type" "text"
-                          "text" (if (str/blank? result-text)
-                                   "No matches found"
-                                   result-text)}]})
+                  responses (eval-clojure-code code)]
+              (format-tool-result responses :default-message "No matches found"))
             (catch Exception e
-              {"isError" true
-               "content" [{"type" "text"
-                          "text" (str "Error searching symbols: " (.getMessage e))}]}))))
+              (format-tool-error (str "Error searching symbols: " (.getMessage e)))))))
 
-      {"isError" true
-       "content" [{"type" "text"
-                  "text" (str "Unknown tool: " tool-name)}]})))
+      (format-tool-error (str "Unknown tool: " tool-name)))))
 
 (defn handle-resources-list []
   {"resources"
@@ -421,14 +308,22 @@
      "name" "Session Variables"
      "description" "Currently defined variables in the REPL session"
      "mimeType" "application/json"}
-    {"uri" "clojure://session/namespaces"  
+    {"uri" "clojure://session/namespaces"
      "name" "Session Namespaces"
      "description" "Currently loaded namespaces in the REPL session"
      "mimeType" "application/json"}
     {"uri" "clojure://session/current-ns"
      "name" "Current Namespace"
      "description" "The current default namespace in the REPL session"
-     "mimeType" "text/plain"}]})
+     "mimeType" "text/plain"}
+    {"uri" "clojure://doc/{symbol}"
+     "name" "Symbol Documentation"
+     "description" "Get documentation for any Clojure symbol (URI template - replace {symbol} with the symbol name)"
+     "mimeType" "text/plain"}
+    {"uri" "clojure://source/{symbol}"
+     "name" "Symbol Source Code"
+     "description" "Get source code for any Clojure symbol (URI template - replace {symbol} with the symbol name)"
+     "mimeType" "text/clojure"}]})
 
 (defn handle-resources-read [params]
   (let [uri (get params "uri")]
@@ -562,25 +457,10 @@
 (defn run-eval-mode [code]
   "Direct evaluation mode - evaluate code and print result to stdout"
   (try
-    ;; Ensure nREPL connection is established
-    (ensure-nrepl-connection)
-
-    ;; Evaluate the code
     (let [responses (eval-clojure-code code)
-          decode-if-bytes (fn [v] (if (bytes? v) (String. v) (str v)))
-          extract-field (fn [field]
-                          (->> responses
-                               (keep #(get % field))
-                               (map decode-if-bytes)))
-          values (extract-field "value")
-          output (str/join "\n" (extract-field "out"))
-          errors (str/join "\n" (extract-field "err"))
-          result-text (str/join "\n"
-                                (concat
-                                 (when-not (str/blank? output) [output])
-                                 (when-not (str/blank? errors) [errors])
-                                 values))]
-      (println (if (str/blank? result-text) "nil" result-text))
+          result (format-tool-result responses)
+          text (get-in result ["content" 0 "text"])]
+      (println text)
       (System/exit 0))
     (catch Exception e
       (binding [*out* *err*]
