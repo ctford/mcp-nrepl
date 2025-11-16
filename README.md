@@ -29,12 +29,75 @@ MCP-nREPL acts as a bridge between the Model Context Protocol and your nREPL ses
 
 This is equivalent to giving an MCP client access to your REPL prompt - it can define functions, load files, switch namespaces, and evaluate any Clojure expression you could run yourself.
 
-## Requirements
+## Installation
 
-- [Babashka](https://babashka.org/) installed and available as `bb`
-- An nREPL server running locally (for actual usage)
+### 1. Prerequisites
 
-## Quick Start
+- **Babashka**: Install via `brew install borkdude/brew/babashka` (macOS) or see [babashka.org](https://babashka.org/) for other platforms
+- **nREPL Server**: Have an nREPL server running in your project (Leiningen, Babashka, Clojure CLI, etc.)
+
+### 2. Download mcp-nrepl.bb
+
+Download the script to a permanent location:
+
+```bash
+# Create a directory for MCP servers (or use any location you prefer)
+mkdir -p ~/.mcp-servers
+cd ~/.mcp-servers
+
+# Download the script
+curl -O https://raw.githubusercontent.com/ctford/mcp-nrepl/main/mcp-nrepl.bb
+chmod +x mcp-nrepl.bb
+```
+
+### 3. Configure Claude Desktop
+
+Edit your Claude Desktop configuration file:
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+Add the mcp-nrepl server:
+
+```json
+{
+  "mcpServers": {
+    "mcp-nrepl": {
+      "command": "bb",
+      "args": ["/Users/yourname/.mcp-servers/mcp-nrepl.bb"],
+      "_comment": "Replace /Users/yourname with your actual home directory path"
+    }
+  }
+}
+```
+
+**Port Configuration**: By default, mcp-nrepl reads the port from `.nrepl-port` in your working directory. To specify a different port, add `"--nrepl-port", "1667"` to the args array.
+
+### 4. Start nREPL and Restart Claude
+
+Start an nREPL server in your project:
+```bash
+cd /path/to/your/clojure/project
+lein repl           # Leiningen
+# or: bb nrepl-server   # Babashka
+# or: clj -Sdeps '{:deps {nrepl/nrepl {:mvn/version "1.0.0"}}}' -X nrepl.cmdline/server
+```
+
+Restart Claude Desktop to load the MCP server.
+
+### 5. Verify It's Working
+
+In Claude Desktop, try asking:
+> "Can you evaluate (+ 1 2 3) in my Clojure REPL?"
+
+Claude should be able to connect to your nREPL session and execute code.
+
+---
+
+**For Development**: If you want to contribute or run tests, clone the full repository instead of just downloading the script.
+
+## Quick Start (Development & Testing)
+
+This section is for developers who have cloned the repository and want to test mcp-nrepl locally.
 
 ### 1. Start an nREPL Server
 
