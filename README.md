@@ -172,7 +172,7 @@ mcp-nrepl/
 ├── run-e2e-test.sh       # End-to-end test runner
 ├── test/
 │   ├── unit_test.bb      # Pure function unit tests
-│   └── mcp_nrepl_test.bb # Legacy tests (deprecated)
+│   └── e2e_test.bb       # End-to-end integration tests
 ├── README.md             # User documentation
 ├── CLAUDE.md             # Development guide
 └── .gitignore            # Git ignore patterns

@@ -190,7 +190,7 @@ MCP-nREPL provides several resources for session introspection:
 - `mcp-nrepl.bb` - Main MCP-nREPL bridge implementation (executable)
 - `eval-clojure.sh` - Convenience script for command-line evaluation
 - `test/unit_test.bb` - Pure function unit tests
-- `test/mcp_nrepl_test.bb` - Legacy integration tests (deprecated)
+- `test/e2e_test.bb` - End-to-end integration tests
 - `start-nrepl.sh` - Script to start nREPL server
 - `run-unit-tests.sh` - Script to run pure function tests
 - `run-e2e-test.sh` - Script to run end-to-end integration tests
