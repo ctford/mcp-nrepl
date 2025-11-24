@@ -4,9 +4,9 @@ This document provides instructions for developing and testing the MCP-nREPL bri
 
 ## Quick Start
 
-1. **Start nREPL server**: `./start-nrepl.sh`
-2. **Run all tests**: `./run-tests.sh`
-3. **Evaluate code**: `./eval-clojure.sh "(+ 1 2 3)"`
+1. **Run all tests**: `./run-tests.sh` (automatically starts nREPL if needed)
+2. **Evaluate code**: `./eval-clojure.sh "(+ 1 2 3)"`
+3. **Start nREPL manually** (optional): `./start-nrepl.sh`
 
 ## Starting the nREPL Server
 
@@ -71,7 +71,10 @@ clj -Sdeps '{:deps {nrepl/nrepl {:mvn/version "1.0.0"}}}' -X nrepl.cmdline/serve
 **Test Implementation:**
 Both test suites are written in Babashka for consistency and maintainability:
 - `test/unit_test.bb` - Pure function tests
-- `test/e2e_test.bb` - Integration tests with MCP protocol communication
+- `test/e2e_test.bb` - Integration tests with automatic nREPL setup
+  - Detects existing nREPL server (via `.nrepl-port`)
+  - Starts new server on random port if needed
+  - Zero bash dependencies - pure Babashka
 
 ## Dependencies
 

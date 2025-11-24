@@ -5,7 +5,8 @@
             [cheshire.core :as json]
             [clojure.string :as str]
             [clojure.java.shell :as shell]
-            [babashka.fs :as fs]))
+            [babashka.fs :as fs]
+            [babashka.process :as proc]))
 
 ;; ANSI color codes
 (def colors
@@ -79,12 +80,49 @@
 (defn get-resource-text [response]
   (get-in response ["result" "contents" 0 "text"]))
 
+(defn start-nrepl-server []
+  "Start a new Babashka nREPL server and return the port"
+  (color-print :yellow "Starting new Babashka nREPL server...")
+  (let [log-file "/tmp/nrepl-output.log"
+        pid-file ".nrepl-pid"
+        port-file ".nrepl-port"]
+
+    ;; Clean up old files
+    (fs/delete-if-exists log-file)
+    (fs/delete-if-exists pid-file)
+    (fs/delete-if-exists port-file)
+
+    ;; Start nREPL server in background with random port (0 = auto-assign)
+    (let [proc (proc/process ["bb" "nrepl-server" "localhost:0"]
+                             {:out log-file
+                              :err log-file})]
+      ;; Save PID for reference
+      (spit pid-file (str (:pid proc)))
+      (color-print :green "nREPL server started with PID: " (:pid proc))
+
+      ;; Wait for server to start and write to log
+      (Thread/sleep 2000)
+
+      ;; Extract port from log file
+      (if (fs/exists? log-file)
+        (let [log-content (slurp log-file)
+              port-match (re-find #"127\.0\.0\.1:(\d+)" log-content)]
+          (if port-match
+            (let [port (second port-match)]
+              (spit port-file port)
+              (color-print :green "nREPL server listening on port: " port)
+              port)
+            (throw (ex-info "Failed to extract port from nREPL output"
+                           {:log log-content}))))
+        (throw (ex-info "nREPL log file not created" {}))))))
+
 (defn setup-nrepl []
   "Ensure nREPL is running and return port"
-  (shell/sh "./start-nrepl.sh")
-  (when-not (fs/exists? ".nrepl-port")
-    (throw (ex-info "Failed to setup nREPL server" {})))
-  (str/trim (slurp ".nrepl-port")))
+  (if (fs/exists? ".nrepl-port")
+    (let [port (str/trim (slurp ".nrepl-port"))]
+      (color-print :green "Found existing .nrepl-port file with port: " port)
+      port)
+    (start-nrepl-server)))
 
 ;; Set up nREPL once before all tests
 (def nrepl-port
