@@ -103,12 +103,15 @@
             (#(swap! state assoc :session-id %)))))
 
 (defn collect-nrepl-responses
-  "Collect all nREPL responses until a 'status' field is received"
+  "Collect all nREPL responses until a 'done' status is received"
   []
   (loop [responses []]
     (if-let [response (read-nrepl-response)]
-      (let [updated-responses (conj responses response)]
-        (if (contains? response "status")
+      (let [updated-responses (conj responses response)
+            status (get response "status")]
+        ;; Keep reading until we get a status containing "done"
+        (if (and status
+                 (some #(= (decode-if-bytes %) "done") status))
           updated-responses
           (recur updated-responses)))
       responses)))
