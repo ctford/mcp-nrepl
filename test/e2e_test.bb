@@ -86,17 +86,22 @@
     (throw (ex-info "Failed to setup nREPL server" {})))
   (str/trim (slurp ".nrepl-port")))
 
+;; Set up nREPL once before all tests
+(def nrepl-port
+  "Port for nREPL server, set up once before all tests run"
+  (setup-nrepl))
+
 ;; E2E Tests
 (deftest test-mcp-initialization
   (testing "MCP protocol initialization works"
-    (let [port (setup-nrepl)
+    (let [port nrepl-port
           [response] (run-mcp port (mcp-initialize))]
       (color-print :green "✓ MCP initialization successful")
       (is (= "2024-11-05" (get-in response ["result" "protocolVersion"]))))))
 
 (deftest test-function-definition-and-invocation
   (testing "Can define and invoke functions"
-    (let [port (setup-nrepl)
+    (let [port nrepl-port
           [init define invoke] (run-mcp port
                                          (mcp-initialize)
                                          (mcp-eval 2 "(defn square [x] (* x x))")
@@ -107,7 +112,7 @@
 
 (deftest test-error-handling
   (testing "Error handling captures exceptions"
-    (let [port (setup-nrepl)
+    (let [port nrepl-port
           [init error] (run-mcp port
                                 (mcp-initialize)
                                 (mcp-eval 5 "(/ 1 0)"))
@@ -117,7 +122,7 @@
 
 (deftest test-file-loading
   (testing "Can load Clojure files"
-    (let [port (setup-nrepl)
+    (let [port nrepl-port
           test-file "/tmp/test-e2e-file.clj"
           _ (spit test-file "(ns test-ns)\n(defn double-it [x] (* x 2))")
           [init load-resp test-resp] (run-mcp port
@@ -131,7 +136,7 @@
 
 (deftest test-namespace-switching
   (testing "Can switch namespaces"
-    (let [port (setup-nrepl)
+    (let [port nrepl-port
           [init set-ns-resp get-ns-resp] (run-mcp port
                                                    (mcp-initialize)
                                                    (mcp-set-ns 14 "clojure.set")
@@ -142,7 +147,7 @@
 
 (deftest test-apropos
   (testing "Can search for symbols"
-    (let [port (setup-nrepl)
+    (let [port nrepl-port
           [init apropos-resp] (run-mcp port
                                        (mcp-initialize)
                                        (mcp-apropos 16 "map"))
@@ -152,7 +157,7 @@
 
 (deftest test-session-introspection
   (testing "Can introspect session state"
-    (let [port (setup-nrepl)
+    (let [port nrepl-port
           [init define vars-resp ns-resp] (run-mcp port
                                                     (mcp-initialize)
                                                     (mcp-eval 6 "(defn test-fn [] 42)")
@@ -173,7 +178,7 @@
 
 (deftest test-persistent-connection
   (testing "Persistent connection has no off-by-one bug"
-    (let [port (setup-nrepl)
+    (let [port nrepl-port
           [init r1 r2 r3 r4] (run-mcp port
                                       (mcp-initialize)
                                       (mcp-eval 100 "(+ 1 1)")
