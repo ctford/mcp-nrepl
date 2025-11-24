@@ -167,26 +167,23 @@
           parsed (json/parse-string json-str)]
       (is (= msg parsed)))))
 
-;; Test helper function: decode-if-bytes
-(deftest decode-if-bytes-handles-bytes-and-strings
-  (testing "Bytes are converted to strings"
-    (let [bytes (.getBytes "test")]
-      (is (= "test" (mcp-nrepl/decode-if-bytes bytes)))))
+;; Test helper function: decode-bytes
+(deftest decode-bytes-converts-bytes-to-utf8-string
+  (testing "Bytes are converted to UTF-8 strings"
+    (let [bytes (.getBytes "test" "UTF-8")]
+      (is (= "test" (mcp-nrepl/decode-bytes bytes)))))
 
-  (testing "Strings are preserved"
-    (is (= "hello" (mcp-nrepl/decode-if-bytes "hello"))))
-
-  (testing "Other types are converted to strings"
-    (is (= "42" (mcp-nrepl/decode-if-bytes 42)))
-    (is (= "true" (mcp-nrepl/decode-if-bytes true)))))
+  (testing "UTF-8 multi-byte characters"
+    (let [bytes (.getBytes "日本語" "UTF-8")]
+      (is (= "日本語" (mcp-nrepl/decode-bytes bytes))))))
 
 ;; Test helper function: extract-field-from-responses
 (deftest extract-field-from-responses-extracts-and-decodes
   (testing "Extracts field from multiple responses and decodes bytes"
-    (let [responses [{"value" (.getBytes "42")}
-                     {"value" "hello"}
+    (let [responses [{"value" (.getBytes "42" "UTF-8")}
+                     {"value" (.getBytes "hello" "UTF-8")}
                      {"other" "field"}
-                     {"value" 123}]]
+                     {"value" (.getBytes "123" "UTF-8")}]]
       (is (= ["42" "hello" "123"] (mcp-nrepl/extract-field-from-responses responses "value")))))
 
   (testing "Returns empty sequence when field not found"
@@ -196,9 +193,9 @@
 ;; Test helper function: format-tool-result
 (deftest format-tool-result-formats-responses-correctly
   (testing "Formats responses with values, output, and errors"
-    (let [responses [{"value" "42"}
-                     {"out" "debug output"}
-                     {"err" "warning"}]
+    (let [responses [{"value" (.getBytes "42" "UTF-8")}
+                     {"out" (.getBytes "debug output" "UTF-8")}
+                     {"err" (.getBytes "warning" "UTF-8")}]
           result (mcp-nrepl/format-tool-result responses)
           expected {"content" [{"type" "text"
                                "text" "debug output\nwarning\n42"}]}]

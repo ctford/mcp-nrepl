@@ -23,10 +23,10 @@
   (binding [*out* *err*]
     (println (str "[ERROR] " (apply format msg args)))))
 
-(defn decode-if-bytes
-  "Convert bytes to string, or convert value to string if not bytes"
+(defn decode-bytes
+  "Convert bytes to UTF-8 string"
   [v]
-  (if (bytes? v) (String. v) (str v)))
+  (String. v "UTF-8"))
 
 (defn parse-port [port-str]
   "Pure function: parse port string to integer, returns nil if invalid"
@@ -111,7 +111,7 @@
             status (get response "status")]
         ;; Keep reading until we get a status containing "done"
         (if (and status
-                 (some #(= (decode-if-bytes %) "done") status))
+                 (some #(= (decode-bytes %) "done") status))
           updated-responses
           (recur updated-responses)))
       responses)))
@@ -142,7 +142,7 @@
   (when-let [responses (eval-nrepl-code (str "(clojure.repl/doc " symbol ")"))]
     (->> responses
          (keep #(get % "out"))
-         (map decode-if-bytes)
+         (map decode-bytes)
          (str/join "")
          str/trim)))
 
@@ -151,7 +151,7 @@
   (when-let [responses (eval-nrepl-code (str "(clojure.repl/source " symbol ")"))]
     (->> responses
          (keep #(get % "out"))
-         (map decode-if-bytes)
+         (map decode-bytes)
          (str/join "")
          str/trim)))
 
@@ -160,7 +160,7 @@
   (when-let [responses (eval-nrepl-code "(keys (ns-publics *ns*))")]
     (->> responses
          (keep #(get % "value"))
-         (map decode-if-bytes)
+         (map decode-bytes)
          first)))
 
 (defn get-session-namespaces []
@@ -168,7 +168,7 @@
   (when-let [responses (eval-nrepl-code "(map str (all-ns))")]
     (->> responses
          (keep #(get % "value"))
-         (map decode-if-bytes)
+         (map decode-bytes)
          first)))
 
 (defn get-current-namespace []
@@ -176,7 +176,7 @@
   (when-let [responses (eval-nrepl-code "(str *ns*)")]
     (->> responses
          (keep #(get % "value"))
-         (map decode-if-bytes)
+         (map decode-bytes)
          first)))
 
 ;; MCP Protocol handlers
@@ -187,7 +187,7 @@
   [responses field]
   (->> responses
        (keep #(get % field))
-       (map decode-if-bytes)))
+       (map decode-bytes)))
 
 (defn format-tool-result
   "Format nREPL responses into a tool result"
