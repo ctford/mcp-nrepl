@@ -106,7 +106,17 @@ Use the provided helper script to start a test nREPL server:
 
 This will start a Babashka nREPL server and write the port to `.nrepl-port`.
 
-### 2a. Direct Eval Mode (Fastest)
+### 2a. Start nREPL Server (Optional)
+
+For interactive development, start a Babashka nREPL server:
+
+```bash
+bb nrepl-server
+```
+
+The server writes its port to `.nrepl-port` for tools to auto-discover.
+
+### 2b. Direct Eval Mode (Fastest)
 
 Evaluate Clojure code directly from the command line:
 
@@ -118,7 +128,7 @@ bb mcp-nrepl.bb -e "(str \"Hello\" \" \" \"World\")"
 # Output: "Hello World"
 ```
 
-### 2b. MCP Server Mode
+### 2c. MCP Server Mode
 
 Run as an MCP server for AI assistants and other MCP clients:
 

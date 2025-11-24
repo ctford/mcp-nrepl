@@ -5,30 +5,23 @@ This document provides instructions for developing and testing the MCP-nREPL bri
 ## Quick Start
 
 1. **Run all tests**: `./run-tests.sh` (automatically starts nREPL if needed)
-2. **Evaluate code**: `./eval-clojure.sh "(+ 1 2 3)"`
-3. **Start nREPL manually** (optional): `./start-nrepl.sh`
+2. **Evaluate code**: `bb mcp-nrepl.bb --eval "(+ 1 2 3)"`
+3. **Start nREPL manually** (optional): `bb nrepl-server`
 
 ## Starting the nREPL Server
 
-To start or connect to a Babashka nREPL server:
+For development work outside of tests, start a Babashka nREPL server:
 
 ```bash
-./start-nrepl.sh
+bb nrepl-server
 ```
 
-This script will:
-- **Detect existing nREPL servers** on common ports (1667, 7888, 7889)
-- **Reuse existing server** if found and responsive
-- **Start new Babashka nREPL server** if none exists
-- **Write the port number** to `.nrepl-port` 
-- **Run in the foreground** until stopped with Ctrl+C
+The server will:
+- Start on a random available port
+- Write the port to `.nrepl-port` file
+- Run in the foreground until stopped with Ctrl+C
 
-**Server Reuse Benefits:**
-- Faster startup (no new process needed)
-- Shared session state across tools
-- Resource efficient development workflow
-
-The server (existing or new) must be running before testing the MCP-nREPL bridge functionality.
+The E2E tests automatically detect and reuse this server if running, or start their own temporary server on a random port.
 
 ## Running Tests
 
@@ -101,23 +94,15 @@ bb mcp-nrepl.bb --help
 
 ### Quick Evaluation
 
-**Direct eval mode (--eval flag, fastest):**
+**Direct eval mode (--eval flag):**
 ```bash
-# Start server first
-./start-nrepl.sh
+# Start nREPL server first (or tests will auto-start)
+bb nrepl-server &
 
 # Direct evaluation (~28ms per call)
 bb mcp-nrepl.bb --eval "(+ 1 2 3)"
 bb mcp-nrepl.bb -e "(defn greet [name] (str \"Hello, \" name \"!\"))"
 bb mcp-nrepl.bb -e "(greet \"World\")"
-```
-
-**Wrapper script (eval-clojure.sh):**
-```bash
-# Alternative using wrapper script
-./eval-clojure.sh "(+ 1 2 3)"
-./eval-clojure.sh "(defn greet [name] (str \"Hello, \" name \"!\"))"
-./eval-clojure.sh "(greet \"World\")"
 ```
 
 ### MCP Protocol Usage
@@ -177,10 +162,8 @@ MCP-nREPL provides several resources for session introspection:
 ## Project Structure
 
 - `mcp-nrepl.bb` - Main MCP-nREPL bridge implementation
-- `eval-clojure.sh` - Convenience script for command-line evaluation
 - `test/unit_test.bb` - Pure function unit tests (Babashka)
-- `test/e2e_test.bb` - End-to-end integration tests (Babashka)
-- `start-nrepl.sh` - Script to start nREPL server
+- `test/e2e_test.bb` - End-to-end integration tests (Babashka, auto-starts nREPL)
 - `run-tests.sh` - Unified test runner (runs both unit and E2E tests)
 
 ## Performance
@@ -205,9 +188,8 @@ bb test/e2e_test.bb     # Just E2E tests
 
 ### Debugging
 ```bash
-# Check nREPL connectivity
-echo "1667" > .nrepl-port
-./eval-clojure.sh "(+ 1 1)"
+# Quick eval to check connectivity
+bb mcp-nrepl.bb --eval "(+ 1 1)"
 
 # Test MCP protocol directly
 echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | bb mcp-nrepl.bb --nrepl-port 1667
