@@ -1,5 +1,3 @@
-#!/usr/bin/env bb
-
 (ns mcp-nrepl
   (:require [babashka.fs :as fs]
             [cheshire.core :as json]

@@ -45,7 +45,6 @@ cd ~/.mcp-servers
 
 # Download the script
 curl -O https://raw.githubusercontent.com/ctford/mcp-nrepl/main/mcp-nrepl.bb
-chmod +x mcp-nrepl.bb
 ```
 
 ### 3. Configure Claude Desktop
@@ -112,10 +111,10 @@ This will start a Babashka nREPL server and write the port to `.nrepl-port`.
 Evaluate Clojure code directly from the command line:
 
 ```bash
-./mcp-nrepl.bb --eval "(+ 1 2 3)"
+bb mcp-nrepl.bb --eval "(+ 1 2 3)"
 # Output: 6
 
-./mcp-nrepl.bb -e "(str \"Hello\" \" \" \"World\")"
+bb mcp-nrepl.bb -e "(str \"Hello\" \" \" \"World\")"
 # Output: "Hello World"
 ```
 
@@ -124,7 +123,7 @@ Evaluate Clojure code directly from the command line:
 Run as an MCP server for AI assistants and other MCP clients:
 
 ```bash
-./mcp-nrepl.bb
+bb mcp-nrepl.bb
 ```
 
 The server will read from stdin and write to stdout using JSON-RPC 2.0 protocol.

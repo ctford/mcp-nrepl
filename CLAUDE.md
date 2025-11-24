@@ -100,14 +100,14 @@ The script supports flexible port configuration:
 
 ```bash
 # Command-line argument (preferred)
-./mcp-nrepl.bb --nrepl-port 1667
+bb mcp-nrepl.bb --nrepl-port 1667
 
 # .nrepl-port file (fallback)
 echo "1667" > .nrepl-port
-./mcp-nrepl.bb
+bb mcp-nrepl.bb
 
 # Show help
-./mcp-nrepl.bb --help
+bb mcp-nrepl.bb --help
 ```
 
 ### Quick Evaluation
@@ -118,9 +118,9 @@ echo "1667" > .nrepl-port
 ./start-nrepl.sh
 
 # Direct evaluation (~28ms per call)
-./mcp-nrepl.bb --eval "(+ 1 2 3)"
-./mcp-nrepl.bb -e "(defn greet [name] (str \"Hello, \" name \"!\"))"
-./mcp-nrepl.bb -e "(greet \"World\")"
+bb mcp-nrepl.bb --eval "(+ 1 2 3)"
+bb mcp-nrepl.bb -e "(defn greet [name] (str \"Hello, \" name \"!\"))"
+bb mcp-nrepl.bb -e "(greet \"World\")"
 ```
 
 **Wrapper script (eval-clojure.sh):**
@@ -134,22 +134,22 @@ echo "1667" > .nrepl-port
 ### MCP Protocol Usage
 ```bash
 # Send JSON-RPC messages directly
-echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}}}' | ./mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}}}' | bb mcp-nrepl.bb --nrepl-port 1667
 
 # Use the eval-clojure tool
-echo '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "eval-clojure", "arguments": {"code": "(+ 1 2 3)"}}}' | ./mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "eval-clojure", "arguments": {"code": "(+ 1 2 3)"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
 
 # Load a Clojure file
-echo '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "load-file", "arguments": {"file-path": "src/my-file.clj"}}}' | ./mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "load-file", "arguments": {"file-path": "src/my-file.clj"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
 
 # Switch namespace
-echo '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "set-ns", "arguments": {"namespace": "my.namespace"}}}' | ./mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "set-ns", "arguments": {"namespace": "my.namespace"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
 
 # Search for symbols matching a pattern
-echo '{"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "apropos", "arguments": {"query": "map"}}}' | ./mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "apropos", "arguments": {"query": "map"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
 
 # Get current namespace
-echo '{"jsonrpc": "2.0", "id": 6, "method": "resources/read", "params": {"uri": "clojure://session/current-ns"}}' | ./mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 6, "method": "resources/read", "params": {"uri": "clojure://session/current-ns"}}' | bb mcp-nrepl.bb --nrepl-port 1667
 ```
 
 ## Tools and Resources
@@ -221,7 +221,7 @@ echo "1667" > .nrepl-port
 ./eval-clojure.sh "(+ 1 1)"
 
 # Test MCP protocol directly
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | ./mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | bb mcp-nrepl.bb --nrepl-port 1667
 ```
 
 ### Code Quality

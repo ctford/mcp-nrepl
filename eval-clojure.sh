@@ -21,4 +21,4 @@ ESCAPED_CODE=$(printf '%s\n' "$CLOJURE_CODE" | sed 's/\\/\\\\/g; s/"/\\"/g')
 EVAL_MSG=$(printf '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "eval-clojure", "arguments": {"code": "%s"}}}' "$ESCAPED_CODE")
 
 # Send both messages to mcp-nrepl and extract the result
-(echo "$INIT_MSG"; echo "$EVAL_MSG") | ./mcp-nrepl.bb | tail -1 | jq -r '.result.content[0].text // .error.message // "No result"'
+(echo "$INIT_MSG"; echo "$EVAL_MSG") | bb mcp-nrepl.bb | tail -1 | jq -r '.result.content[0].text // .error.message // "No result"'
