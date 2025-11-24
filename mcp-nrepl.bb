@@ -214,6 +214,18 @@
    "content" [{"type" "text"
               "text" error-msg}]})
 
+(defn with-required-param
+  "Helper to validate a required parameter and handle errors.
+   Calls f with the parameter value if valid, otherwise returns error."
+  [arguments param-name error-context f]
+  (let [param (get arguments param-name)]
+    (if (str/blank? param)
+      (format-tool-error (str "Error: " param-name " parameter is required and cannot be empty"))
+      (try
+        (f param)
+        (catch Exception e
+          (format-tool-error (str "Error " error-context ": " (.getMessage e))))))))
+
 (defn handle-initialize [params]
   (let [client-version (get params "protocolVersion")
         capabilities (get params "capabilities" {})]
@@ -263,50 +275,32 @@
         arguments (get params "arguments" {})]
     (case tool-name
       "eval-clojure"
-      (let [code (get arguments "code")]
-        (if (str/blank? code)
-          (format-tool-error "Error: Code parameter is required and cannot be empty")
-          (try
-            (format-tool-result (eval-clojure-code code))
-            (catch Exception e
-              (format-tool-error (str "Error evaluating Clojure code: " (.getMessage e)))))))
-      
+      (with-required-param arguments "code" "evaluating Clojure code"
+        (fn [code]
+          (format-tool-result (eval-clojure-code code))))
+
       "load-file"
-      (let [file-path (get arguments "file-path")]
-        (if (str/blank? file-path)
-          (format-tool-error "Error: file-path parameter is required and cannot be empty")
-          (try
-            (if (fs/exists? file-path)
-              (let [code (str "(load-file \"" file-path "\")")
-                    responses (eval-clojure-code code)]
-                (format-tool-result responses
-                                    :default-message (str "Successfully loaded file: " file-path)))
-              (format-tool-error (str "Error: File not found: " file-path)))
-            (catch Exception e
-              (format-tool-error (str "Error loading file: " (.getMessage e)))))))
-      
+      (with-required-param arguments "file-path" "loading file"
+        (fn [file-path]
+          (if (fs/exists? file-path)
+            (format-tool-result
+              (eval-clojure-code (str "(load-file \"" file-path "\")"))
+              :default-message (str "Successfully loaded file: " file-path))
+            (format-tool-error (str "Error: File not found: " file-path)))))
+
       "set-ns"
-      (let [namespace (get arguments "namespace")]
-        (if (str/blank? namespace)
-          (format-tool-error "Error: namespace parameter is required and cannot be empty")
-          (try
-            (let [code (str "(in-ns '" namespace ")")
-                  responses (eval-clojure-code code)]
-              (format-tool-result responses
-                                  :default-message (str "Successfully switched to namespace: " namespace)))
-            (catch Exception e
-              (format-tool-error (str "Error switching namespace: " (.getMessage e)))))))
+      (with-required-param arguments "namespace" "switching namespace"
+        (fn [namespace]
+          (format-tool-result
+            (eval-clojure-code (str "(in-ns '" namespace ")"))
+            :default-message (str "Successfully switched to namespace: " namespace))))
 
       "apropos"
-      (let [query (get arguments "query")]
-        (if (str/blank? query)
-          (format-tool-error "Error: query parameter is required and cannot be empty")
-          (try
-            (let [code (str "(require 'clojure.repl) (clojure.repl/apropos \"" query "\")")
-                  responses (eval-clojure-code code)]
-              (format-tool-result responses :default-message "No matches found"))
-            (catch Exception e
-              (format-tool-error (str "Error searching symbols: " (.getMessage e)))))))
+      (with-required-param arguments "query" "searching symbols"
+        (fn [query]
+          (format-tool-result
+            (eval-clojure-code (str "(require 'clojure.repl) (clojure.repl/apropos \"" query "\")"))
+            :default-message "No matches found")))
 
       (format-tool-error (str "Unknown tool: " tool-name)))))
 

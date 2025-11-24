@@ -229,6 +229,46 @@
   (testing "Returns nil for empty responses"
     (is (nil? (mcp-nrepl/extract-nrepl-value [])))))
 
+;; Test helper function: with-required-param
+(deftest with-required-param-validates-and-handles-errors
+  (testing "Calls function with parameter when valid"
+    (let [arguments {"code" "(+ 1 2)"}
+          result (mcp-nrepl/with-required-param arguments "code" "testing"
+                   (fn [code] {"success" true "code" code}))]
+      (is (= {"success" true "code" "(+ 1 2)"} result))))
+
+  (testing "Returns error when parameter is blank"
+    (let [arguments {"code" ""}
+          result (mcp-nrepl/with-required-param arguments "code" "testing"
+                   (fn [code] {"success" true}))]
+      (is (= true (get result "isError")))
+      (is (= "Error: code parameter is required and cannot be empty"
+             (get-in result ["content" 0 "text"])))))
+
+  (testing "Returns error when parameter is nil"
+    (let [arguments {}
+          result (mcp-nrepl/with-required-param arguments "namespace" "testing"
+                   (fn [ns] {"success" true}))]
+      (is (= true (get result "isError")))
+      (is (= "Error: namespace parameter is required and cannot be empty"
+             (get-in result ["content" 0 "text"])))))
+
+  (testing "Catches exceptions and formats error"
+    (let [arguments {"code" "bad"}
+          result (mcp-nrepl/with-required-param arguments "code" "evaluating code"
+                   (fn [code] (throw (Exception. "Division by zero"))))]
+      (is (= true (get result "isError")))
+      (is (= "Error evaluating code: Division by zero"
+             (get-in result ["content" 0 "text"])))))
+
+  (testing "Preserves exception message in error context"
+    (let [arguments {"file-path" "/test.clj"}
+          result (mcp-nrepl/with-required-param arguments "file-path" "loading file"
+                   (fn [path] (throw (Exception. "File not found"))))]
+      (is (= true (get result "isError")))
+      (is (= "Error loading file: File not found"
+             (get-in result ["content" 0 "text"]))))))
+
 ;; Test helper function: format-tool-result
 (deftest format-tool-result-formats-responses-correctly
   (testing "Formats responses with values, output, and errors"
