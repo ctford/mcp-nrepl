@@ -5,9 +5,8 @@ This document provides instructions for developing and testing the MCP-nREPL bri
 ## Quick Start
 
 1. **Start nREPL server**: `./start-nrepl.sh`
-2. **Run unit tests**: `./run-unit-tests.sh` 
-3. **Run e2e tests**: `./run-e2e-test.sh`
-4. **Evaluate code**: `./eval-clojure.sh "(+ 1 2 3)"`
+2. **Run all tests**: `./run-tests.sh`
+3. **Evaluate code**: `./eval-clojure.sh "(+ 1 2 3)"`
 
 ## Starting the nREPL Server
 
@@ -33,59 +32,46 @@ The server (existing or new) must be running before testing the MCP-nREPL bridge
 
 ## Running Tests
 
-The project has two types of tests:
-
-### Unit Tests (Pure Functions)
+Run the complete test suite:
 ```bash
-./run-unit-tests.sh
+./run-tests.sh
 ```
 
-**Fast, isolated tests** (~1 second execution):
-- ✅ Pure functions only - no side effects, I/O, or state mutations  
+The test suite includes:
+
+### Unit Tests (Pure Functions, ~1 second)
+- ✅ Pure functions only - no side effects, I/O, or state mutations
 - ✅ Tests: MCP handlers, data transformation, error builders
 - ✅ Perfect for rapid development feedback
 
-### End-to-End Tests (Full Integration) 
-```bash
-./run-e2e-test.sh
-```
-
-**Complete workflow verification** (~5 seconds execution):
-- ✅ Starts nREPL server automatically on random port
-- ✅ Tests MCP protocol initialization  
+### End-to-End Tests (Full Integration, ~5 seconds)
+- ✅ Tests MCP protocol initialization
 - ✅ Defines and invokes Clojure functions with `defn`
 - ✅ Verifies error handling with real exceptions
-- ✅ Automatic cleanup of processes and temporary files
+- ✅ Tests file loading, namespace switching, symbol search
+- ✅ Tests direct eval mode and persistent connections
 - ✅ Colorized output with clear success/failure indicators
-
-**Simplified Testing:**
-```bash
-# Always detects/reuses existing servers or starts new one
-./run-e2e-test.sh
-```
 
 **Multi-Backend Testing:**
 The E2E tests automatically work with any nREPL server:
 ```bash
 # Test against Babashka (auto-detected)
 bb nrepl-server localhost:1667 &
-./run-e2e-test.sh
+./run-tests.sh
 
-# Test against Leiningen (auto-detected)  
+# Test against Leiningen (auto-detected)
 lein repl :headless :port 1667 &
-./run-e2e-test.sh
+./run-tests.sh
 
 # Test against Clojure CLI (auto-detected)
 clj -Sdeps '{:deps {nrepl/nrepl {:mvn/version "1.0.0"}}}' -X nrepl.cmdline/server :port 1667 &
-./run-e2e-test.sh
+./run-tests.sh
 ```
 
-**Example E2E Test Flow:**
-1. `bb nrepl-server` → starts on port 54321
-2. `{"method": "initialize"}` → MCP handshake  
-3. `(defn square [x] (* x x))` → function definition
-4. `(square 7)` → returns `49`
-5. `(/ 1 0)` → catches `ArithmeticException`
+**Test Implementation:**
+Both test suites are written in Babashka for consistency and maintainability:
+- `test/unit_test.bb` - Pure function tests
+- `test/e2e_test.bb` - Integration tests with MCP protocol communication
 
 ## Dependencies
 
@@ -187,13 +173,12 @@ MCP-nREPL provides several resources for session introspection:
 
 ## Project Structure
 
-- `mcp-nrepl.bb` - Main MCP-nREPL bridge implementation (executable)
+- `mcp-nrepl.bb` - Main MCP-nREPL bridge implementation
 - `eval-clojure.sh` - Convenience script for command-line evaluation
-- `test/unit_test.bb` - Pure function unit tests
-- `test/e2e_test.bb` - End-to-end integration tests
+- `test/unit_test.bb` - Pure function unit tests (Babashka)
+- `test/e2e_test.bb` - End-to-end integration tests (Babashka)
 - `start-nrepl.sh` - Script to start nREPL server
-- `run-unit-tests.sh` - Script to run pure function tests
-- `run-e2e-test.sh` - Script to run end-to-end integration tests
+- `run-tests.sh` - Unified test runner (runs both unit and E2E tests)
 
 ## Performance
 
@@ -207,11 +192,12 @@ MCP-nREPL is significantly faster than traditional Clojure tooling:
 
 ### Test-Driven Development
 ```bash
-# Rapid unit test feedback during development
-./run-unit-tests.sh
+# Run complete test suite (unit + E2E)
+./run-tests.sh
 
-# Full integration verification before commits  
-./run-e2e-test.sh
+# Or run individual test files for faster feedback
+bb test/unit_test.bb    # Just unit tests
+bb test/e2e_test.bb     # Just E2E tests
 ```
 
 ### Debugging

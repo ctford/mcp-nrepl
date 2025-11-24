@@ -142,21 +142,16 @@ Example tool call:
 
 ### Running Tests
 
-The project has two test suites:
-
-**Unit Tests (Pure Functions, ~1 second)**:
+Run the complete test suite (unit + E2E):
 ```bash
-./run-unit-tests.sh
+./run-tests.sh
 ```
 
-Tests pure functions with no side effects - MCP handlers, data transformation, error builders.
+The test suite includes:
+- **Unit Tests** (~1 second) - Pure functions with no side effects: MCP handlers, data transformation, error builders
+- **End-to-End Tests** (~5 seconds) - Full integration: MCP protocol, nREPL eval, resources, and direct eval mode
 
-**End-to-End Tests (Full Integration, ~5 seconds)**:
-```bash
-./run-e2e-test.sh
-```
-
-Tests complete workflows including MCP protocol, nREPL eval, resources, and direct eval mode.
+Both test suites are written in Babashka for consistency and maintainability.
 
 ## Protocol Support
 
