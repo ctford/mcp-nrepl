@@ -190,6 +190,45 @@
     (let [responses [{"other" "field"}]]
       (is (empty? (mcp-nrepl/extract-field-from-responses responses "value"))))))
 
+;; Test helper function: extract-nrepl-output
+(deftest extract-nrepl-output-joins-and-trims
+  (testing "Extracts 'out' field, joins lines, and trims whitespace"
+    (let [responses [{"out" (.getBytes "Line 1\n" "UTF-8")}
+                     {"out" (.getBytes "Line 2\n" "UTF-8")}
+                     {"value" (.getBytes "ignored" "UTF-8")}
+                     {"out" (.getBytes "Line 3" "UTF-8")}]]
+      (is (= "Line 1\nLine 2\nLine 3" (mcp-nrepl/extract-nrepl-output responses)))))
+
+  (testing "Trims leading and trailing whitespace"
+    (let [responses [{"out" (.getBytes "  \n  text  \n  " "UTF-8")}]]
+      (is (= "text" (mcp-nrepl/extract-nrepl-output responses)))))
+
+  (testing "Returns empty string when no 'out' field"
+    (let [responses [{"value" (.getBytes "42" "UTF-8")}]]
+      (is (= "" (mcp-nrepl/extract-nrepl-output responses)))))
+
+  (testing "Returns empty string for empty responses"
+    (is (= "" (mcp-nrepl/extract-nrepl-output [])))))
+
+;; Test helper function: extract-nrepl-value
+(deftest extract-nrepl-value-returns-first
+  (testing "Extracts 'value' field from first response with value"
+    (let [responses [{"status" (.getBytes "done" "UTF-8")}
+                     {"value" (.getBytes "first-value" "UTF-8")}
+                     {"value" (.getBytes "second-value" "UTF-8")}]]
+      (is (= "first-value" (mcp-nrepl/extract-nrepl-value responses)))))
+
+  (testing "Decodes bytes to UTF-8 string"
+    (let [responses [{"value" (.getBytes "日本語" "UTF-8")}]]
+      (is (= "日本語" (mcp-nrepl/extract-nrepl-value responses)))))
+
+  (testing "Returns nil when no 'value' field"
+    (let [responses [{"out" (.getBytes "text" "UTF-8")}]]
+      (is (nil? (mcp-nrepl/extract-nrepl-value responses)))))
+
+  (testing "Returns nil for empty responses"
+    (is (nil? (mcp-nrepl/extract-nrepl-value [])))))
+
 ;; Test helper function: format-tool-result
 (deftest format-tool-result-formats-responses-correctly
   (testing "Formats responses with values, output, and errors"

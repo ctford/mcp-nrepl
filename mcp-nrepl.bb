@@ -137,47 +137,49 @@
     (throw (Exception. "No nREPL connection available"))))
 
 ;; nREPL Resource Operations
+
+;; Helper functions for extracting data from nREPL responses
+(defn extract-nrepl-output
+  "Extract and join 'out' field from responses, trimming whitespace"
+  [responses]
+  (->> responses
+       (keep #(get % "out"))
+       (map decode-bytes)
+       (str/join "")
+       str/trim))
+
+(defn extract-nrepl-value
+  "Extract and decode 'value' field from first response"
+  [responses]
+  (->> responses
+       (keep #(get % "value"))
+       (map decode-bytes)
+       first))
+
 (defn get-doc [symbol]
   "Get documentation for a symbol by evaluating (clojure.repl/doc symbol)"
-  (when-let [responses (eval-nrepl-code (str "(clojure.repl/doc " symbol ")"))]
-    (->> responses
-         (keep #(get % "out"))
-         (map decode-bytes)
-         (str/join "")
-         str/trim)))
+  (some-> (eval-nrepl-code (str "(clojure.repl/doc " symbol ")"))
+          extract-nrepl-output))
 
 (defn get-source [symbol]
   "Get source code for a symbol by evaluating (clojure.repl/source symbol)"
-  (when-let [responses (eval-nrepl-code (str "(clojure.repl/source " symbol ")"))]
-    (->> responses
-         (keep #(get % "out"))
-         (map decode-bytes)
-         (str/join "")
-         str/trim)))
+  (some-> (eval-nrepl-code (str "(clojure.repl/source " symbol ")"))
+          extract-nrepl-output))
 
 (defn get-session-vars []
   "Get list of public variables in current namespace"
-  (when-let [responses (eval-nrepl-code "(keys (ns-publics *ns*))")]
-    (->> responses
-         (keep #(get % "value"))
-         (map decode-bytes)
-         first)))
+  (some-> (eval-nrepl-code "(keys (ns-publics *ns*))")
+          extract-nrepl-value))
 
 (defn get-session-namespaces []
   "Get list of all loaded namespaces"
-  (when-let [responses (eval-nrepl-code "(map str (all-ns))")]
-    (->> responses
-         (keep #(get % "value"))
-         (map decode-bytes)
-         first)))
+  (some-> (eval-nrepl-code "(map str (all-ns))")
+          extract-nrepl-value))
 
 (defn get-current-namespace []
   "Get the current default namespace"
-  (when-let [responses (eval-nrepl-code "(str *ns*)")]
-    (->> responses
-         (keep #(get % "value"))
-         (map decode-bytes)
-         first)))
+  (some-> (eval-nrepl-code "(str *ns*)")
+          extract-nrepl-value))
 
 ;; MCP Protocol handlers
 
