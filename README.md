@@ -12,18 +12,16 @@ This project provides a bridge between the Model Context Protocol and nREPL, all
 - **Minimal Dependencies**: Single Babashka script with no external dependencies
 - **Fast Execution**: ~28ms per evaluation in direct mode
 - **MCP Compliant**: Implements core MCP protocol with tools and resources
-- **nREPL Integration**: Connects to existing nREPL servers via TCP
+- **nREPL Integration**: Connects to existing nREPL servers (Babashka, Leiningen, Clojure CLI)
 - **Auto-Discovery**: Reads nREPL port from `.nrepl-port` file
 - **Rich Tooling**: Code eval, file loading, namespace switching, symbol search
 - **Session Introspection**: Resources for vars, namespaces, docs, and source
-- **Comprehensive Testing**: Pure function unit tests + full E2E integration tests
 
 ## How It Works
 
 MCP-nREPL acts as a bridge between the Model Context Protocol and your nREPL session:
 
 - **Direct REPL Access**: Provides MCP clients (like Claude) with the ability to evaluate Clojure code in your running nREPL session
-- **Localhost Only**: Connects to nREPL servers on localhost (typically used for local development)
 - **Shared Session**: All evaluations happen in the same nREPL session, maintaining state between calls
 - **Development Tool**: Designed for interactive development workflows where you want AI assistance with Clojure code
 
@@ -161,23 +159,6 @@ Tests pure functions with no side effects - MCP handlers, data transformation, e
 
 Tests complete workflows including MCP protocol, nREPL eval, resources, and direct eval mode.
 
-### Project Structure
-
-```
-mcp-nrepl/
-├── mcp-nrepl.bb          # Main MCP server implementation (executable)
-├── start-nrepl.sh        # Helper script to start nREPL server
-├── eval-clojure.sh       # Convenience wrapper for evaluation
-├── run-unit-tests.sh     # Unit test runner
-├── run-e2e-test.sh       # End-to-end test runner
-├── test/
-│   ├── unit_test.bb      # Pure function unit tests
-│   └── e2e_test.bb       # End-to-end integration tests
-├── README.md             # User documentation
-├── CLAUDE.md             # Development guide
-└── .gitignore            # Git ignore patterns
-```
-
 ## Protocol Support
 
 ### MCP Methods Implemented
@@ -220,22 +201,6 @@ mcp-nrepl/
 **clojure://doc/{symbol}** - Get documentation for a symbol (e.g., `clojure://doc/map`)
 
 **clojure://source/{symbol}** - Get source code for a symbol (e.g., `clojure://source/map`)
-
-## Architecture
-
-The implementation consists of several key components:
-
-1. **JSON-RPC Transport**: Handles stdin/stdout communication using newline-delimited JSON
-2. **MCP Protocol Handler**: Implements core MCP methods and message routing
-3. **nREPL Client**: Manages connection and communication with nREPL server using BEncode
-4. **Message Translation**: Converts between MCP requests and nREPL operations
-
-## Error Handling
-
-- Graceful handling of nREPL connection failures
-- Proper error responses for malformed requests
-- Logging to stderr for debugging
-- Timeout handling for nREPL operations
 
 ## Limitations
 
