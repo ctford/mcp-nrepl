@@ -324,6 +324,45 @@ else
     exit 1
 fi
 
+# Step 11: Test PERSISTENT connection (off-by-one bug test)
+echo -e "${YELLOW}Step 11: Testing persistent MCP connection (off-by-one bug test)...${NC}"
+
+# Send multiple sequential requests through ONE process
+PERSISTENT_TEST=$(cat << 'EOF'
+{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}}}
+{"jsonrpc": "2.0", "id": 100, "method": "tools/call", "params": {"name": "eval-clojure", "arguments": {"code": "(+ 1 1)"}}}
+{"jsonrpc": "2.0", "id": 101, "method": "tools/call", "params": {"name": "eval-clojure", "arguments": {"code": "(+ 5 5)"}}}
+{"jsonrpc": "2.0", "id": 102, "method": "tools/call", "params": {"name": "eval-clojure", "arguments": {"code": "(* 7 8)"}}}
+{"jsonrpc": "2.0", "id": 103, "method": "tools/call", "params": {"name": "eval-clojure", "arguments": {"code": "(- 100 42)"}}}
+EOF
+)
+
+PERSISTENT_RESPONSES=$(echo "$PERSISTENT_TEST" | ./mcp-nrepl.bb --nrepl-port "$PORT")
+
+# Extract results from each response (skip init response, get the 4 eval responses)
+PERS_R1=$(echo "$PERSISTENT_RESPONSES" | sed -n '2p' | jq -r '.result.content[0].text')
+PERS_R2=$(echo "$PERSISTENT_RESPONSES" | sed -n '3p' | jq -r '.result.content[0].text')
+PERS_R3=$(echo "$PERSISTENT_RESPONSES" | sed -n '4p' | jq -r '.result.content[0].text')
+PERS_R4=$(echo "$PERSISTENT_RESPONSES" | sed -n '5p' | jq -r '.result.content[0].text')
+
+# Check for off-by-one bug
+if [ "$PERS_R1" = "2" ] && [ "$PERS_R2" = "10" ] && [ "$PERS_R3" = "56" ] && [ "$PERS_R4" = "58" ]; then
+    echo -e "${GREEN}✓ Persistent connection test passed - no off-by-one bug${NC}"
+    echo -e "${GREEN}  (+ 1 1) = 2, (+ 5 5) = 10, (* 7 8) = 56, (- 100 42) = 58${NC}"
+else
+    echo -e "${RED}✗ Persistent connection test FAILED${NC}"
+    echo -e "${RED}  (+ 1 1) = $PERS_R1 (expected 2)${NC}"
+    echo -e "${RED}  (+ 5 5) = $PERS_R2 (expected 10)${NC}"
+    echo -e "${RED}  (* 7 8) = $PERS_R3 (expected 56)${NC}"
+    echo -e "${RED}  (- 100 42) = $PERS_R4 (expected 58)${NC}"
+
+    # Check if it's the off-by-one pattern
+    if [ "$PERS_R2" = "2" ] || [ "$PERS_R3" = "10" ] || [ "$PERS_R4" = "56" ]; then
+        echo -e "${RED}  OFF-BY-ONE BUG DETECTED: Results are from previous evaluations!${NC}"
+    fi
+    exit 1
+fi
+
 # Clean up test file
 rm -f /tmp/test-file.clj
 
@@ -341,3 +380,4 @@ echo -e "${GREEN}  - Namespace switching${NC}"
 echo -e "${GREEN}  - Current namespace resource${NC}"
 echo -e "${GREEN}  - Apropos symbol search${NC}"
 echo -e "${GREEN}  - Direct eval mode (--eval flag)${NC}"
+echo -e "${GREEN}  - Persistent connection mode (no off-by-one bug)${NC}"

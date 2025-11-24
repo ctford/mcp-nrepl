@@ -13,6 +13,7 @@
 
 ;; Global state
 (def state (atom {:nrepl-socket nil
+                  :nrepl-input-stream nil
                   :session-id nil
                   :initialized false
                   :nrepl-port nil}))
@@ -57,8 +58,10 @@
 
 (defn connect-to-nrepl [port]
   (try
-    (let [socket (java.net.Socket. "localhost" port)]
+    (let [socket (java.net.Socket. "localhost" port)
+          input-stream (java.io.PushbackInputStream. (.getInputStream socket))]
       (.setSoTimeout socket 5000)
+      (swap! state assoc :nrepl-input-stream input-stream)
       socket)
     (catch Exception e
       (log-error "Failed to connect to nREPL on port %d: %s" port (.getMessage e))
@@ -74,13 +77,13 @@
       (log-error "Failed to send nREPL message: %s" (.getMessage e))
       false)))
 
-(defn read-nrepl-response [socket]
+(defn read-nrepl-response []
   (try
-    (let [in (java.io.PushbackInputStream. (.getInputStream socket))
-          response (bencode/read-bencode in)]
-      (when-not (map? response)
-        (log-error "Invalid nREPL response (not a map): %s" response))
-      response)
+    (when-let [in (:nrepl-input-stream @state)]
+      (let [response (bencode/read-bencode in)]
+        (when-not (map? response)
+          (log-error "Invalid nREPL response (not a map): %s" response))
+        response))
     (catch Exception e
       (log-error "Failed to read nREPL response: %s" (.getMessage e))
       nil)))
@@ -88,7 +91,7 @@
 (defn create-session [socket]
   (let [clone-msg {"op" "clone" "id" (str (java.util.UUID/randomUUID))}]
     (when (send-nrepl-message socket clone-msg)
-      (some-> (read-nrepl-response socket)
+      (some-> (read-nrepl-response)
               (get "new-session")))))
 
 (defn ensure-nrepl-connection []
@@ -101,9 +104,9 @@
 
 (defn collect-nrepl-responses
   "Collect all nREPL responses until a 'status' field is received"
-  [socket]
+  []
   (loop [responses []]
-    (if-let [response (read-nrepl-response socket)]
+    (if-let [response (read-nrepl-response)]
       (let [updated-responses (conj responses response)]
         (if (contains? response "status")
           updated-responses
@@ -122,7 +125,7 @@
                  "session" session-id
                  "id" (str (java.util.UUID/randomUUID))}]
         (when (send-nrepl-message nrepl-socket msg)
-          (collect-nrepl-responses nrepl-socket))))))
+          (collect-nrepl-responses))))))
 
 (defn eval-clojure-code [code]
   "Evaluate Clojure code and return responses. Throws exception on failure."
@@ -495,6 +498,10 @@
           (log-error "Fatal error: %s" (.getMessage e))
           (System/exit 1))
         (finally
+          (when-let [in (:nrepl-input-stream @state)]
+            (try
+              (.close in)
+              (catch Exception _)))
           (when-let [socket (:nrepl-socket @state)]
             (try
               (.close socket)
