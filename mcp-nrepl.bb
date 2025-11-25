@@ -267,7 +267,7 @@
                     "description" "The namespace to switch to"}}
       "required" ["namespace"]}}]})
 
-;; Code generation helpers
+;; Code generation and resource helpers
 (defn build-load-file-code
   "Pure function: Build load-file code string with proper escaping"
   [file-path]
@@ -277,6 +277,12 @@
   "Pure function: Build apropos code string with proper escaping"
   [query]
   (str "(require 'clojure.repl) (clojure.repl/apropos " (pr-str query) ")"))
+
+(defn get-apropos-results [query]
+  "Search for symbols matching a pattern"
+  (some-> (eval-nrepl-code (build-apropos-code query))
+          format-tool-result
+          (get-in ["content" 0 "text"])))
 
 (defn handle-tools-call [params]
   (let [tool-name (get params "name")
@@ -357,12 +363,10 @@
 
       (str/starts-with? uri APROPOS-URI-PREFIX)
       (let [query (subs uri (count APROPOS-URI-PREFIX))]
-        (if-let [results (eval-clojure-code (build-apropos-code query))]
-          (let [text (or (get-in (format-tool-result results) ["content" 0 "text"])
-                         "No matches found")]
-            {"contents" [{"uri" uri
-                         "mimeType" "text/plain"
-                         "text" text}]})
+        (if-let [results (get-apropos-results query)]
+          {"contents" [{"uri" uri
+                       "mimeType" "text/plain"
+                       "text" results}]}
           {"contents" [{"uri" uri
                        "mimeType" "text/plain"
                        "text" "No matches found"}]}))
