@@ -71,7 +71,7 @@ Replace `/Users/yourname` with your actual home directory path.
 - No need for `--nrepl-port` argument in typical workflows
 - Configuration is project-specific and can be checked into version control
 
-### 4. Alternative: Configure Claude Desktop
+### 3a. Alternative: Configure Claude Desktop
 
 If you prefer to use Claude Desktop instead, edit your Claude Desktop configuration file:
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -93,7 +93,7 @@ Add the mcp-nrepl server:
 
 **Port Configuration**: By default, mcp-nrepl reads the port from `.nrepl-port` in your working directory. Since Claude Desktop's working directory may not be your project root, you may need to add `"--nrepl-port", "1667"` to the args array to specify the port explicitly.
 
-### 6. Start nREPL and Restart
+### 4. Start nREPL and Restart
 
 Start an nREPL server in your project:
 ```bash
@@ -105,7 +105,7 @@ lein repl           # Leiningen
 
 Then restart Claude Code or Claude Desktop to load the MCP server.
 
-### 7. Verify It's Working
+### 5. Verify It's Working
 
 Try asking Claude:
 > "Can you evaluate (+ 1 2 3) in my Clojure REPL?"
