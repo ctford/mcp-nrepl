@@ -274,7 +274,7 @@
                 "description" "Search pattern (string or regex) to match against symbol names"}}
       "required" ["query"]}}]})
 
-;; Pure code generation functions for testing
+;; Code generation helpers
 (defn build-load-file-code
   "Pure function: Build load-file code string with proper escaping"
   [file-path]
