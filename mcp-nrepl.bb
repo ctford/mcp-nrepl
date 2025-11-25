@@ -450,7 +450,7 @@
         ""
         "Modes:"
         "  MCP Server Mode (default): Reads MCP JSON-RPC messages from stdin"
-        "  Direct Eval Mode (--eval): Evaluates code and prints result"
+        "  Connectionless Eval Mode (--eval): Evaluates code and prints result"
         ""
         "If no port is specified, reads from .nrepl-port file in current directory."]
        (str/join \newline)))
@@ -472,7 +472,7 @@
       {:options options})))
 
 (defn run-eval-mode [code]
-  "Direct evaluation mode - evaluate code and print result to stdout"
+  "Connectionless evaluation mode - evaluate code and print result to stdout"
   (try
     (let [responses (eval-clojure-code code)
           result (format-tool-result responses)
@@ -497,7 +497,7 @@
 
         ;; Check if we're in eval mode or MCP server mode
         (if-let [code (:eval options)]
-          ;; Direct eval mode - evaluate code and exit
+          ;; Connectionless eval mode - evaluate code and exit
           (run-eval-mode code)
 
           ;; MCP server mode - read JSON-RPC messages from stdin

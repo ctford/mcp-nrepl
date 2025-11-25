@@ -207,11 +207,11 @@
       (is (str/includes? vars "test-fn"))
       (is (str/includes? namespaces "user")))))
 
-(deftest test-direct-eval-mode
-  (testing "Direct eval mode works"
+(deftest test-connectionless-eval-mode
+  (testing "Connectionless eval mode works"
     (let [result (shell/sh "bb" "mcp-nrepl.bb" "--eval" "(+ 1 2 3)")
           output (str/trim (:out result))]
-      (color-print :green "✓ Direct eval works: (+ 1 2 3) = " output)
+      (color-print :green "✓ Connectionless eval works: (+ 1 2 3) = " output)
       (is (= "6" output)))))
 
 (deftest test-persistent-connection

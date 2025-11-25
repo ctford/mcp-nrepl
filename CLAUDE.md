@@ -42,7 +42,7 @@ The test suite includes:
 - ✅ Defines and invokes Clojure functions with `defn`
 - ✅ Verifies error handling with real exceptions
 - ✅ Tests file loading, namespace switching, symbol search
-- ✅ Tests direct eval mode and persistent connections
+- ✅ Tests connectionless eval mode and persistent connections
 - ✅ Colorized output with clear success/failure indicators
 
 **Multi-Backend Testing:**
@@ -94,12 +94,12 @@ bb mcp-nrepl.bb --help
 
 ### Quick Evaluation
 
-**Direct eval mode (--eval flag):**
+**Connectionless eval mode (--eval flag):**
 ```bash
 # Start nREPL server first (or tests will auto-start)
 bb nrepl-server &
 
-# Direct evaluation (~28ms per call)
+# Connectionless evaluation (~28ms per call)
 bb mcp-nrepl.bb --eval "(+ 1 2 3)"
 bb mcp-nrepl.bb -e "(defn greet [name] (str \"Hello, \" name \"!\"))"
 bb mcp-nrepl.bb -e "(greet \"World\")"

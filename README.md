@@ -8,9 +8,9 @@ This project provides a bridge between the Model Context Protocol and nREPL, all
 
 ## Features
 
-- **Dual Mode Operation**: MCP server mode + direct eval mode (`--eval` flag)
+- **Dual Mode Operation**: MCP server mode + connectionless eval mode (`--eval` flag)
 - **Minimal Dependencies**: Single Babashka script with no external dependencies
-- **Fast Execution**: ~28ms per evaluation in direct mode
+- **Fast Execution**: ~28ms per evaluation in connectionless mode
 - **MCP Compliant**: Implements core MCP protocol with tools and resources
 - **nREPL Integration**: Connects to existing nREPL servers (Babashka, Leiningen, Clojure CLI)
 - **Auto-Discovery**: Reads nREPL port from `.nrepl-port` file
@@ -141,7 +141,7 @@ bb nrepl-server
 
 The server writes its port to `.nrepl-port` for tools to auto-discover.
 
-### 2b. Direct Eval Mode (Fastest)
+### 2b. Connectionless Eval Mode (Fastest)
 
 Evaluate Clojure code directly from the command line:
 
@@ -184,7 +184,7 @@ Run the complete test suite (unit + E2E):
 
 The test suite includes:
 - **Unit Tests** (~1 second) - Pure functions with no side effects: MCP handlers, data transformation, error builders
-- **End-to-End Tests** (~5 seconds) - Full integration: MCP protocol, nREPL eval, resources, and direct eval mode
+- **End-to-End Tests** (~5 seconds) - Full integration: MCP protocol, nREPL eval, resources, and connectionless eval mode
 
 Both test suites are written in Babashka for consistency and maintainability.
 
