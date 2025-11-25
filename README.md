@@ -58,13 +58,12 @@ Create a `.mcp.json` file in your Clojure project root:
   "mcpServers": {
     "mcp-nrepl": {
       "command": "bb",
-      "args": ["/Users/yourname/.mcp-servers/mcp-nrepl.bb"]
+      "args": ["/Users/yourname/.mcp-servers/mcp-nrepl.bb"],
+      "_comment": "Replace /Users/yourname with your actual home directory path"
     }
   }
 }
 ```
-
-Replace `/Users/yourname` with your actual home directory path.
 
 **Key advantages**:
 - The working directory is your project root, so `.nrepl-port` is automatically discovered
