@@ -14,7 +14,8 @@
                   :nrepl-input-stream nil
                   :session-id nil
                   :initialized false
-                  :nrepl-port nil}))
+                  :nrepl-port nil
+                  :shutdown false}))
 
 ;; Utility functions
 (defn log-error [msg & args]
@@ -467,6 +468,26 @@
         (println (str "Error: " (.getMessage e))))
       (System/exit 1))))
 
+(defn setup-shutdown-handlers []
+  "Register signal handlers for graceful shutdown"
+  (let [shutdown-handler (fn [signal]
+                           (binding [*out* *err*]
+                             (println (str "\n[INFO] Received " signal ", shutting down gracefully...")))
+                           (swap! state assoc :shutdown true))]
+    (try
+      ;; Register handlers for SIGTERM and SIGINT
+      (sun.misc.Signal/handle
+        (sun.misc.Signal. "TERM")
+        (reify sun.misc.SignalHandler
+          (handle [_ sig] (shutdown-handler "SIGTERM"))))
+      (sun.misc.Signal/handle
+        (sun.misc.Signal. "INT")
+        (reify sun.misc.SignalHandler
+          (handle [_ sig] (shutdown-handler "SIGINT"))))
+      (catch Exception e
+        ;; Ignore if signal handling not available
+        nil))))
+
 (defn main [& args]
   (let [{:keys [options exit-message ok?]} (validate-args args)]
     (if exit-message
@@ -484,12 +505,18 @@
           (run-eval-mode code)
 
           ;; MCP server mode - read JSON-RPC messages from stdin
-          (loop []
-            (when-let [line (read-line)]
-              (let [response (process-message line)]
-                (println (json/generate-string response))
-                (flush))
-              (recur))))
+          (do
+            ;; Set up graceful shutdown handlers
+            (setup-shutdown-handlers)
+
+            (loop []
+              (when (and (not (:shutdown @state))
+                         (when-let [line (read-line)]
+                           (let [response (process-message line)]
+                             (println (json/generate-string response))
+                             (flush))
+                           true))
+                (recur)))))
 
         (catch Exception e
           (log-error "Fatal error: %s" (.getMessage e))
