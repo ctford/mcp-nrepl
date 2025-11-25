@@ -1,6 +1,6 @@
 # MCP-nREPL
 
-A minimal, fast Model Context Protocol (MCP) server implementation for nREPL using Babashka.
+A minimal, fast Model Context Protocol (MCP) server implementation for nREPL using Babashka. That means your coding assistant can use the REPL like you would.
 
 ## Overview
 
