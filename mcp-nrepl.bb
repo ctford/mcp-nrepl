@@ -9,6 +9,10 @@
 (def MCP-VERSION "2024-11-05")
 (def SERVER-INFO {:name "mcp-nrepl" :version "0.1.0"})
 
+;; Resource URI prefixes
+(def DOC-URI-PREFIX "clojure://doc/")
+(def SOURCE-URI-PREFIX "clojure://source/")
+
 ;; Global state
 (def state (atom {:nrepl-socket nil
                   :nrepl-input-stream nil
@@ -339,8 +343,8 @@
 (defn handle-resources-read [params]
   (let [uri (get params "uri")]
     (cond
-      (str/starts-with? uri "clojure://doc/")
-      (let [symbol (subs uri 14)] ; Remove "clojure://doc/"
+      (str/starts-with? uri DOC-URI-PREFIX)
+      (let [symbol (subs uri (count DOC-URI-PREFIX))]
         (if-let [doc-content (get-doc symbol)]
           {"contents" [{"uri" uri
                        "mimeType" "text/plain"
@@ -348,9 +352,9 @@
           {"contents" [{"uri" uri
                        "mimeType" "text/plain"
                        "text" (str "No documentation found for: " symbol)}]}))
-      
-      (str/starts-with? uri "clojure://source/")
-      (let [symbol (subs uri 17)] ; Remove "clojure://source/"
+
+      (str/starts-with? uri SOURCE-URI-PREFIX)
+      (let [symbol (subs uri (count SOURCE-URI-PREFIX))]
         (if-let [source-content (get-source symbol)]
           {"contents" [{"uri" uri
                        "mimeType" "text/clojure"
