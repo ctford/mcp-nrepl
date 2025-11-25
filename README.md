@@ -49,9 +49,31 @@ cd ~/.mcp-servers
 curl -O https://raw.githubusercontent.com/ctford/mcp-nrepl/main/mcp-nrepl.bb
 ```
 
-### 3. Configure Claude Desktop (for example)
+### 3. Configure Claude Code
 
-Edit your Claude Desktop configuration file:
+Create a `.mcp.json` file in your Clojure project root:
+
+```json
+{
+  "mcpServers": {
+    "mcp-nrepl": {
+      "command": "bb",
+      "args": ["/Users/yourname/.mcp-servers/mcp-nrepl.bb"]
+    }
+  }
+}
+```
+
+Replace `/Users/yourname` with your actual home directory path.
+
+**Key advantages**:
+- The working directory is your project root, so `.nrepl-port` is automatically discovered
+- No need for `--nrepl-port` argument in typical workflows
+- Configuration is project-specific and can be checked into version control
+
+### 4. Alternative: Configure Claude Desktop
+
+If you prefer to use Claude Desktop instead, edit your Claude Desktop configuration file:
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
@@ -69,9 +91,9 @@ Add the mcp-nrepl server:
 }
 ```
 
-**Port Configuration**: By default, mcp-nrepl reads the port from `.nrepl-port` in your working directory. To specify a different port, add `"--nrepl-port", "1667"` to the args array.
+**Port Configuration**: By default, mcp-nrepl reads the port from `.nrepl-port` in your working directory. Since Claude Desktop's working directory may not be your project root, you may need to add `"--nrepl-port", "1667"` to the args array to specify the port explicitly.
 
-### 4. Start nREPL and Restart Claude
+### 6. Start nREPL and Restart
 
 Start an nREPL server in your project:
 ```bash
@@ -81,11 +103,11 @@ lein repl           # Leiningen
 # or: clj -Sdeps '{:deps {nrepl/nrepl {:mvn/version "1.0.0"}}}' -X nrepl.cmdline/server
 ```
 
-Restart Claude Desktop to load the MCP server.
+Then restart Claude Code or Claude Desktop to load the MCP server.
 
-### 5. Verify It's Working
+### 7. Verify It's Working
 
-In Claude Desktop, try asking:
+Try asking Claude:
 > "Can you evaluate (+ 1 2 3) in my Clojure REPL?"
 
 Claude should be able to connect to your nREPL session and execute code.
