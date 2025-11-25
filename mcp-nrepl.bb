@@ -268,6 +268,17 @@
                 "description" "Search pattern (string or regex) to match against symbol names"}}
       "required" ["query"]}}]})
 
+;; Pure code generation functions for testing
+(defn build-load-file-code
+  "Pure function: Build load-file code string with proper escaping"
+  [file-path]
+  (str "(load-file " (pr-str file-path) ")"))
+
+(defn build-apropos-code
+  "Pure function: Build apropos code string with proper escaping"
+  [query]
+  (str "(require 'clojure.repl) (clojure.repl/apropos " (pr-str query) ")"))
+
 (defn handle-tools-call [params]
   (let [tool-name (get params "name")
         arguments (get params "arguments" {})]
@@ -282,7 +293,7 @@
         (fn [file-path]
           (if (fs/exists? file-path)
             (format-tool-result
-              (eval-clojure-code (str "(load-file \"" file-path "\")"))
+              (eval-clojure-code (build-load-file-code file-path))
               :default-message (str "Successfully loaded file: " file-path))
             (format-tool-error (str "Error: File not found: " file-path)))))
 
@@ -297,7 +308,7 @@
       (with-required-param arguments "query" "searching symbols"
         (fn [query]
           (format-tool-result
-            (eval-clojure-code (str "(require 'clojure.repl) (clojure.repl/apropos \"" query "\")"))
+            (eval-clojure-code (build-apropos-code query))
             :default-message "No matches found")))
 
       (format-tool-error (str "Unknown tool: " tool-name)))))

@@ -303,6 +303,24 @@
                                "text" "Test error message"}]}]
       (is (= expected result)))))
 
+;; Test code generation functions properly escape special characters
+(deftest code-generation-properly-escapes-special-characters
+  (testing "load-file code generation escapes quotes and special chars"
+    (is (= "(load-file \"normal.clj\")"
+           (mcp-nrepl/build-load-file-code "normal.clj")))
+    (is (= "(load-file \"file\\\"with\\\"quotes.clj\")"
+           (mcp-nrepl/build-load-file-code "file\"with\"quotes.clj")))
+    (is (= "(load-file \"path/with spaces.clj\")"
+           (mcp-nrepl/build-load-file-code "path/with spaces.clj"))))
+
+  (testing "apropos code generation escapes quotes and special chars"
+    (is (= "(require 'clojure.repl) (clojure.repl/apropos \"map\")"
+           (mcp-nrepl/build-apropos-code "map")))
+    (is (= "(require 'clojure.repl) (clojure.repl/apropos \"test\\\"quote\")"
+           (mcp-nrepl/build-apropos-code "test\"quote")))
+    (is (= "(require 'clojure.repl) (clojure.repl/apropos \"with spaces\")"
+           (mcp-nrepl/build-apropos-code "with spaces")))))
+
 ;; Main test runner
 (defn run-all-tests []
   (println "Running unit tests for pure functions...")
