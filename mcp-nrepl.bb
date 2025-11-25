@@ -14,8 +14,8 @@
 (def SOURCE-URI-PREFIX "clojure://source/")
 
 ;; Global state
-(def state (atom {:nrepl-socket nil
-                  :nrepl-input-stream nil
+(def state (atom {:nrepl-input-stream nil
+                  :nrepl-output-stream nil
                   :session-id nil
                   :initialized false
                   :nrepl-port nil}))
@@ -61,17 +61,18 @@
 (defn connect-to-nrepl [port]
   (try
     (let [socket (java.net.Socket. "localhost" port)
-          input-stream (java.io.PushbackInputStream. (.getInputStream socket))]
+          input-stream (java.io.PushbackInputStream. (.getInputStream socket))
+          output-stream (.getOutputStream socket)]
       (.setSoTimeout socket 5000)
-      (swap! state assoc :nrepl-input-stream input-stream)
-      socket)
+      {:input-stream input-stream
+       :output-stream output-stream})
     (catch Exception e
       (log-error "Failed to connect to nREPL on port %d: %s" port (.getMessage e))
       nil)))
 
-(defn send-nrepl-message [socket msg]
+(defn send-nrepl-message [msg]
   (try
-    (let [out (.getOutputStream socket)]
+    (when-let [out (:nrepl-output-stream @state)]
       (bencode/write-bencode out msg)
       (.flush out)
       true)
@@ -90,18 +91,20 @@
       (log-error "Failed to read nREPL response: %s" (.getMessage e))
       nil)))
 
-(defn create-session [socket]
+(defn create-session []
   (let [clone-msg {"op" "clone" "id" (str (java.util.UUID/randomUUID))}]
-    (when (send-nrepl-message socket clone-msg)
+    (when (send-nrepl-message clone-msg)
       (some-> (read-nrepl-response)
               (get "new-session")))))
 
 (defn ensure-nrepl-connection []
-  (when-not (:nrepl-socket @state)
+  (when-not (:nrepl-input-stream @state)
     (when-let [port (or (:nrepl-port @state) (read-nrepl-port))]
-      (when-let [socket (connect-to-nrepl port)]
-        (swap! state assoc :nrepl-socket socket)
-        (when-let [session-id (create-session socket)]
+      (when-let [{:keys [input-stream output-stream]} (connect-to-nrepl port)]
+        (swap! state assoc
+               :nrepl-input-stream input-stream
+               :nrepl-output-stream output-stream)
+        (when-let [session-id (create-session)]
           (swap! state assoc :session-id session-id))))))
 
 (defn collect-nrepl-responses
@@ -123,14 +126,13 @@
    This is the common pattern used by all resource and tool functions."
   [code]
   (ensure-nrepl-connection)
-  (let [{:keys [nrepl-socket session-id]} @state]
-    (when nrepl-socket
-      (let [msg {"op" "eval"
-                 "code" code
-                 "session" session-id
-                 "id" (str (java.util.UUID/randomUUID))}]
-        (when (send-nrepl-message nrepl-socket msg)
-          (collect-nrepl-responses))))))
+  (let [{:keys [session-id]} @state
+        msg {"op" "eval"
+             "code" code
+             "session" session-id
+             "id" (str (java.util.UUID/randomUUID))}]
+    (when (send-nrepl-message msg)
+      (collect-nrepl-responses))))
 
 (defn eval-clojure-code [code]
   "Evaluate Clojure code and return responses. Throws exception on failure."
@@ -514,9 +516,9 @@
             (try
               (.close in)
               (catch Exception _)))
-          (when-let [socket (:nrepl-socket @state)]
+          (when-let [out (:nrepl-output-stream @state)]
             (try
-              (.close socket)
+              (.close out)
               (catch Exception _))))))))
 
 ;; Entry point
