@@ -94,13 +94,15 @@ Add the mcp-nrepl server:
 
 ### 4. Start nREPL and Restart
 
-Start an nREPL server in your project:
+Before using mcp-nrepl, start an nREPL server in your project:
 ```bash
 cd /path/to/your/clojure/project
 lein repl           # Leiningen
 # or: bb nrepl-server   # Babashka
 # or: clj -Sdeps '{:deps {nrepl/nrepl {:mvn/version "1.0.0"}}}' -X nrepl.cmdline/server
 ```
+
+This creates a `.nrepl-port` file that mcp-nrepl will use to connect.
 
 Then restart Claude Code or Claude Desktop to load the MCP server.
 
