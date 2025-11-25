@@ -94,11 +94,11 @@
 
 (defn ensure-nrepl-connection []
   (when-not (:nrepl-socket @state)
-    (some-> (or (:nrepl-port @state) (read-nrepl-port))
-            (connect-to-nrepl)
-            (doto (#(swap! state assoc :nrepl-socket %)))
-            (create-session)
-            (#(swap! state assoc :session-id %)))))
+    (when-let [port (or (:nrepl-port @state) (read-nrepl-port))]
+      (when-let [socket (connect-to-nrepl port)]
+        (swap! state assoc :nrepl-socket socket)
+        (when-let [session-id (create-session socket)]
+          (swap! state assoc :session-id session-id))))))
 
 (defn collect-nrepl-responses
   "Collect all nREPL responses until a 'done' status is received"
