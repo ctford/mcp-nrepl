@@ -27,9 +27,9 @@ MCP-nREPL acts as a bridge between the Model Context Protocol and your nREPL ses
 
 This is equivalent to giving an MCP client access to your REPL prompt - it can define functions, load files, switch namespaces, and evaluate any Clojure expression you could run yourself.
 
-For now, MCP-nREPL is distributed as a single, unversioned Babashka script with zero dependencies (outside of what Babashka already provides). You should be able to understand it, hack it, copy it around and check it into your dotfiles repo.
-
 ## Installation
+
+For now, MCP-nREPL is distributed as a single, unversioned Babashka script with zero dependencies (outside of what Babashka already provides). You should be able to understand it, hack it, copy it around and check it into your dotfiles repo.
 
 ### 1. Prerequisites
 
