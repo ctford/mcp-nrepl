@@ -47,7 +47,7 @@ cd ~/.mcp-servers
 curl -O https://raw.githubusercontent.com/ctford/mcp-nrepl/main/mcp-nrepl.bb
 ```
 
-### 3. Configure Claude Desktop
+### 3. Configure Claude Desktop (for example)
 
 Edit your Claude Desktop configuration file:
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
