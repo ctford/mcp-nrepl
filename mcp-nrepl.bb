@@ -12,6 +12,7 @@
 ;; Resource URI prefixes
 (def DOC-URI-PREFIX "clojure://doc/")
 (def SOURCE-URI-PREFIX "clojure://source/")
+(def APROPOS-URI-PREFIX "clojure://symbols/apropos/")
 
 ;; Global state
 (def state (atom {:nrepl-input-stream nil
@@ -264,15 +265,7 @@
       "properties"
       {"namespace" {"type" "string"
                     "description" "The namespace to switch to"}}
-      "required" ["namespace"]}}
-    {"name" "apropos"
-     "description" "Search for symbols matching a pattern in their name or documentation"
-     "inputSchema"
-     {"type" "object"
-      "properties"
-      {"query" {"type" "string"
-                "description" "Search pattern (string or regex) to match against symbol names"}}
-      "required" ["query"]}}]})
+      "required" ["namespace"]}}]})
 
 ;; Code generation helpers
 (defn build-load-file-code
@@ -310,13 +303,6 @@
             (eval-clojure-code (str "(in-ns '" namespace ")"))
             :default-message (str "Successfully switched to namespace: " namespace))))
 
-      "apropos"
-      (with-required-param arguments "query" "searching symbols"
-        (fn [query]
-          (format-tool-result
-            (eval-clojure-code (build-apropos-code query))
-            :default-message "No matches found")))
-
       (format-tool-error (str "Unknown tool: " tool-name)))))
 
 (defn handle-resources-list []
@@ -340,7 +326,11 @@
     {"uri" "clojure://source/{symbol}"
      "name" "Symbol Source Code"
      "description" "Get source code for any Clojure symbol (URI template - replace {symbol} with the symbol name)"
-     "mimeType" "text/clojure"}]})
+     "mimeType" "text/clojure"}
+    {"uri" "clojure://symbols/apropos/{query}"
+     "name" "Symbol Search"
+     "description" "Search for symbols matching a pattern in their name or documentation (URI template - replace {query} with the search pattern)"
+     "mimeType" "text/plain"}]})
 
 (defn handle-resources-read [params]
   (let [uri (get params "uri")]
@@ -364,7 +354,19 @@
           {"contents" [{"uri" uri
                        "mimeType" "text/plain"
                        "text" (str "No source found for: " symbol)}]}))
-      
+
+      (str/starts-with? uri APROPOS-URI-PREFIX)
+      (let [query (subs uri (count APROPOS-URI-PREFIX))]
+        (if-let [results (eval-clojure-code (build-apropos-code query))]
+          (let [text (or (get-in (format-tool-result results) ["content" 0 "text"])
+                         "No matches found")]
+            {"contents" [{"uri" uri
+                         "mimeType" "text/plain"
+                         "text" text}]})
+          {"contents" [{"uri" uri
+                       "mimeType" "text/plain"
+                       "text" "No matches found"}]}))
+
       (= uri "clojure://session/vars")
       (if-let [vars (get-session-vars)]
         {"contents" [{"uri" uri

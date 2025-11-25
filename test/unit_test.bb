@@ -59,7 +59,7 @@
 
 ;; Test tools list contains all expected tools with correct schemas
 (deftest tools-list-contains-all-expected-tools-with-correct-schemas
-  (testing "Tools list includes eval-clojure, load-file, set-ns, and apropos with proper schemas"
+  (testing "Tools list includes eval-clojure, load-file, and set-ns with proper schemas"
     (let [result (mcp-nrepl/handle-tools-list)
           expected {"tools"
                     [{"name" "eval-clojure"
@@ -85,15 +85,7 @@
                        "properties"
                        {"namespace" {"type" "string"
                                      "description" "The namespace to switch to"}}
-                       "required" ["namespace"]}}
-                     {"name" "apropos"
-                      "description" "Search for symbols matching a pattern in their name or documentation"
-                      "inputSchema"
-                      {"type" "object"
-                       "properties"
-                       {"query" {"type" "string"
-                                 "description" "Search pattern (string or regex) to match against symbol names"}}
-                       "required" ["query"]}}]}]
+                       "required" ["namespace"]}}]}]
       (is (= expected result)))))
 
 ;; Test resources list contains all session introspection resources
@@ -120,7 +112,11 @@
                      {"uri" "clojure://source/{symbol}"
                       "name" "Symbol Source Code"
                       "description" "Get source code for any Clojure symbol (URI template - replace {symbol} with the symbol name)"
-                      "mimeType" "text/clojure"}]}]
+                      "mimeType" "text/clojure"}
+                     {"uri" "clojure://symbols/apropos/{query}"
+                      "name" "Symbol Search"
+                      "description" "Search for symbols matching a pattern in their name or documentation (URI template - replace {query} with the search pattern)"
+                      "mimeType" "text/plain"}]}]
       (is (= expected result)))))
 
 ;; Test error responses follow JSON-RPC error format correctly

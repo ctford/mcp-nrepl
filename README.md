@@ -214,11 +214,6 @@ Both test suites are written in Babashka for consistency and maintainability.
 - Returns: Confirmation of namespace switch
 - Creates namespace if it doesn't exist
 
-**apropos** - Search for symbols matching a pattern
-- Parameters: `query` (string, required)
-- Returns: List of matching symbols with fully-qualified names
-- Searches both built-in and user-defined symbols
-
 ### Available Resources
 
 **clojure://session/vars** - List currently defined variables in the session
@@ -230,6 +225,8 @@ Both test suites are written in Babashka for consistency and maintainability.
 **clojure://doc/{symbol}** - Get documentation for a symbol (e.g., `clojure://doc/map`)
 
 **clojure://source/{symbol}** - Get source code for a symbol (e.g., `clojure://source/map`)
+
+**clojure://symbols/apropos/{query}** - Search for symbols matching a pattern (e.g., `clojure://symbols/apropos/map`)
 
 ## Limitations
 

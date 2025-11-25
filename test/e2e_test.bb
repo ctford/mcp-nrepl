@@ -54,9 +54,8 @@
 (defn mcp-apropos [id query]
   {"jsonrpc" "2.0"
    "id" id
-   "method" "tools/call"
-   "params" {"name" "apropos"
-             "arguments" {"query" query}}})
+   "method" "resources/read"
+   "params" {"uri" (str "clojure://symbols/apropos/" query)}})
 
 (defn mcp-resource-read [id uri]
   {"jsonrpc" "2.0"
@@ -189,7 +188,7 @@
           [init apropos-resp] (run-mcp port
                                        (mcp-initialize)
                                        (mcp-apropos 16 "map"))
-          result (get-result-text apropos-resp)]
+          result (get-resource-text apropos-resp)]
       (color-print :green "✓ Apropos search successful")
       (is (str/includes? result "clojure.core/map")))))
 
