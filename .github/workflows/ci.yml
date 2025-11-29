@@ -24,25 +24,17 @@ jobs:
 
     - name: Start nREPL server
       run: |
-        # Start nREPL server in background
-        bb nrepl-server &
+        # Start nREPL server on known port for CI
+        bb nrepl-server localhost:7888 &
         NREPL_PID=$!
         echo "NREPL_PID=$NREPL_PID" >> $GITHUB_ENV
 
-        # Wait for server to start and .nrepl-port to be created
-        for i in {1..10}; do
-          if [ -f .nrepl-port ]; then
-            echo "nREPL server started on port $(cat .nrepl-port)"
-            break
-          fi
-          echo "Waiting for nREPL server to start... ($i/10)"
-          sleep 1
-        done
+        # Write port to .nrepl-port for tests
+        echo "7888" > .nrepl-port
 
-        if [ ! -f .nrepl-port ]; then
-          echo "Failed to start nREPL server"
-          exit 1
-        fi
+        # Wait for server to start
+        sleep 2
+        echo "nREPL server started on port 7888 (PID: $NREPL_PID)"
 
     - name: Run tests
       run: ./run-tests.sh
