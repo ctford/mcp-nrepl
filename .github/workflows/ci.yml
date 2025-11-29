@@ -28,9 +28,7 @@ jobs:
         bb nrepl-server localhost:7888 &
         NREPL_PID=$!
         echo "NREPL_PID=$NREPL_PID" >> $GITHUB_ENV
-
-        # Write port to .nrepl-port for tests
-        echo "7888" > .nrepl-port
+        echo "NREPL_PORT=7888" >> $GITHUB_ENV
 
         # Wait for server to start
         sleep 2
@@ -38,11 +36,13 @@ jobs:
 
     - name: Run tests
       run: ./run-tests.sh
+      env:
+        NREPL_PORT: 7888
 
     - name: Test connectionless eval mode
       run: |
         # Test eval mode (using existing nREPL server)
-        result=$(bb mcp-nrepl.bb --eval "(+ 1 2 3)")
+        result=$(bb mcp-nrepl.bb --nrepl-port 7888 --eval "(+ 1 2 3)")
         echo "Eval result: $result"
 
         # Verify result
