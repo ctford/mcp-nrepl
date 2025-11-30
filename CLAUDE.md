@@ -193,7 +193,27 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | bb mcp-nrepl.bb --n
 
 ### Code Quality
 - **Unit tests** verify pure function correctness
-- **E2E tests** ensure real-world functionality  
+- **E2E tests** ensure real-world functionality
 - **Zero external dependencies** for easy distribution
 - **some-> threading** eliminates nested when-let chains
 - **Keyword destructuring** for cleaner state access
+
+## Test Modification Policy
+
+⚠️ **IMPORTANT: Tests represent backwards compatibility guarantees.**
+
+Since MCP-nREPL is distributed as a versionless script, **existing tests must not be modified without explicit user confirmation**. Tests document expected behavior and protect against breaking changes.
+
+**Rules:**
+- ✅ **Adding new tests** - Always encouraged to expand coverage
+- ❌ **Modifying existing test expectations** - Requires explicit user approval
+- ❌ **Removing tests** - Requires explicit user approval
+- ❌ **Changing test assertions** - Requires explicit user approval
+
+**Why:** Each test represents a contract with users. Changing tests can mask breaking changes that would affect deployed scripts. New functionality should have new tests, not modified old ones.
+
+**Examples:**
+- ✅ Add new test for a new feature → OK
+- ✅ Add new assertion to existing test for stricter validation → OK
+- ❌ Change assertion from `(= "6" output)` to `(= "7" output)` → Requires approval
+- ❌ Remove test for deprecated feature → Requires approval
