@@ -448,7 +448,7 @@
   [["-p" "--nrepl-port PORT" "Connect to nREPL server on specified port"
     :parse-fn parse-port
     :validate [integer? "Must be a valid port number"]]
-   ["-e" "--eval CODE" "Evaluate Clojure code and print result (direct mode)"]
+   ["-e" "--eval CODE" "Evaluate Clojure code and print result (connectionless eval mode)"]
    ["-h" "--help" "Show this help message"]])
 
 (defn usage [options-summary]
