@@ -226,6 +226,106 @@
         (is (str/includes? error-text "required")
             "Error should mention required parameter")))))
 
+(deftest test-invalid-resource-uri
+  (testing "Handles invalid resource URIs gracefully"
+    (let [port "7888"
+          init-msg (json/generate-string
+                    {"jsonrpc" "2.0"
+                     "id" 1
+                     "method" "initialize"
+                     "params" {"protocolVersion" "2024-11-05"
+                               "capabilities" {}}})
+          invalid-uris ["clojure://invalid/foo"
+                       "clojure://unknown"
+                       "invalid-uri"
+                       "clojure://"]
+          test-case (fn [uri]
+                     (let [msg (json/generate-string
+                                {"jsonrpc" "2.0"
+                                 "id" 2
+                                 "method" "resources/read"
+                                 "params" {"uri" uri}})
+                           input (str init-msg "\n" msg)
+                           result (run-mcp-with-input port input)
+                           output (:out result)
+                           lines (str/split-lines output)]
+                       (when (> (count lines) 1)
+                         (json/parse-string (second lines)))))]
+      (color-print :green "✓ Invalid resource URI test completed")
+      (doseq [uri invalid-uris]
+        (let [response (test-case uri)]
+          (is (some? response)
+              (str "Should return response for invalid URI: " uri))
+          (when response
+            (is (get response "error")
+                (str "Should return error for invalid URI: " uri))))))))
+
+(deftest test-load-nonexistent-file
+  (testing "Handles load-file with non-existent file"
+    (let [port "7888"
+          init-msg (json/generate-string
+                    {"jsonrpc" "2.0"
+                     "id" 1
+                     "method" "initialize"
+                     "params" {"protocolVersion" "2024-11-05"
+                               "capabilities" {}}})
+          load-msg (json/generate-string
+                    {"jsonrpc" "2.0"
+                     "id" 2
+                     "method" "tools/call"
+                     "params" {"name" "load-file"
+                               "arguments" {"file-path" "/tmp/nonexistent-file-12345.clj"}}})
+          input (str init-msg "\n" load-msg)
+          result (run-mcp-with-input port input)
+          output (:out result)
+          lines (str/split-lines output)]
+      (color-print :green "✓ Load non-existent file test completed")
+      (is (> (count lines) 1) "Should get at least 2 responses")
+      (let [response (json/parse-string (second lines))
+            error-text (get-in response ["result" "content" 0 "text"])]
+        (is (get-in response ["result" "isError"])
+            "Should return error response")
+        (is (or (str/includes? error-text "not found")
+                (str/includes? error-text "File not found"))
+            "Error should mention file not found")))))
+
+(deftest test-invalid-namespace
+  (testing "Handles set-ns with invalid namespace names"
+    (let [port "7888"
+          init-msg (json/generate-string
+                    {"jsonrpc" "2.0"
+                     "id" 1
+                     "method" "initialize"
+                     "params" {"protocolVersion" "2024-11-05"
+                               "capabilities" {}}})
+          invalid-namespaces ["123invalid"  ;; starts with number
+                             "foo..bar"     ;; double dots
+                             "foo/bar/baz"  ;; too many slashes
+                             ""]            ;; empty
+          test-case (fn [ns-name]
+                     (let [msg (json/generate-string
+                                {"jsonrpc" "2.0"
+                                 "id" 2
+                                 "method" "tools/call"
+                                 "params" {"name" "set-ns"
+                                           "arguments" {"namespace" ns-name}}})
+                           input (str init-msg "\n" msg)
+                           result (run-mcp-with-input port input)
+                           output (:out result)
+                           lines (str/split-lines output)]
+                       (when (> (count lines) 1)
+                         (let [response (json/parse-string (second lines))
+                               result-text (get-in response ["result" "content" 0 "text"])]
+                           {:response response
+                            :text result-text}))))]
+      (color-print :green "✓ Invalid namespace test completed")
+      ;; Most invalid namespaces might actually be accepted by Clojure
+      ;; (in-ns is permissive), but at least verify we get a response
+      (doseq [ns-name invalid-namespaces]
+        (let [result (test-case ns-name)]
+          (is (some? result)
+              (str "Should return response for namespace: " ns-name)))))))
+
 ;; Main test runner
 (defn run-all-tests []
   (color-print :yellow "Starting misuse tests for mcp-nrepl...")
