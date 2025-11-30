@@ -371,13 +371,14 @@
           output (:out result)
           lines (str/split-lines output)]
       (color-print :green "✓ Tools before initialization test completed")
-      ;; Should get a response (either error or it works - both are acceptable)
+      ;; Should get exactly 1 error response
       (is (>= (count lines) 1) "Should get at least 1 response")
-      ;; The response should be valid JSON-RPC
+      ;; The response should be a JSON-RPC error about not being initialized
       (let [response (json/parse-string (first lines))]
-        (is (or (get response "result")
-                (get response "error"))
-            "Should return either result or error")))))
+        (is (get response "error") "Should return error for uninitialized server")
+        (let [error-msg (get-in response ["error" "message"])]
+          (is (str/includes? error-msg "not initialized")
+              "Error should mention server not initialized"))))))
 
 ;; Main test runner
 (defn run-all-tests []
