@@ -180,6 +180,7 @@ The test suite includes:
 - **Unit Tests** (~1 second) - Pure functions with no side effects: MCP handlers, data transformation, error builders
 - **End-to-End Tests** (~5 seconds) - Full integration: MCP protocol, nREPL eval, resources, and connectionless eval mode
 - **Misuse Tests** (~3 seconds) - Error handling: malformed JSON, invalid requests, missing nREPL server, malformed Clojure code
+- **Performance Tests** (~1 second) - Timing validation: connectionless eval mode completes under 200ms threshold
 
 All test suites are written in Babashka for consistency and maintainability.
 

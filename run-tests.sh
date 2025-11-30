@@ -25,6 +25,11 @@ echo "→ Running misuse tests (error handling)..."
 bb test/misuse_test.bb
 echo
 
+# Run performance tests
+echo "→ Running performance tests (timing validation)..."
+bb test/performance_test.bb
+echo
+
 echo "================================================================"
 echo "✅ All tests passed!"
 echo "================================================================"
