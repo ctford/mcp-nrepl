@@ -326,6 +326,37 @@
           (is (some? result)
               (str "Should return response for namespace: " ns-name)))))))
 
+(deftest test-request-size-limit
+  (testing "Handles requests exceeding 64 KB size limit"
+    (let [port "7888"
+          ;; Create a large code string > 64 KB
+          large-code (apply str (repeat 70000 "x"))
+          init-msg (json/generate-string
+                    {"jsonrpc" "2.0"
+                     "id" 1
+                     "method" "initialize"
+                     "params" {"protocolVersion" "2024-11-05"
+                               "capabilities" {}}})
+          large-request (json/generate-string
+                         {"jsonrpc" "2.0"
+                          "id" 2
+                          "method" "tools/call"
+                          "params" {"name" "eval-clojure"
+                                    "arguments" {"code" large-code}}})
+          input (str init-msg "\n" large-request)
+          result (run-mcp-with-input port input)
+          output (:out result)
+          lines (str/split-lines output)]
+      (color-print :green "✓ Request size limit test completed")
+      ;; First response (init) should succeed
+      (is (>= (count lines) 2) "Should get at least 2 responses")
+      ;; Second response should contain size limit error
+      (let [response (json/parse-string (second lines))]
+        (is (get response "error") "Should return error for oversized request")
+        (let [error-msg (get-in response ["error" "message"])]
+          (is (str/includes? error-msg "too large") "Error should mention size")
+          (is (str/includes? error-msg "load-file") "Error should suggest load-file alternative"))))))
+
 ;; Main test runner
 (defn run-all-tests []
   (color-print :yellow "Starting misuse tests for mcp-nrepl...")

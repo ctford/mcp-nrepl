@@ -8,6 +8,7 @@
 ;; MCP Protocol constants
 (def MCP-VERSION "2024-11-05")
 (def SERVER-INFO {:name "mcp-nrepl" :version "0.1.0"})
+(def MAX-REQUEST-SIZE 65536) ;; 64 KB - maximum JSON-RPC request size
 
 ;; Resource URI prefixes
 (def DOC-URI-PREFIX "clojure://doc/")
@@ -517,7 +518,10 @@
           ;; MCP server mode - read JSON-RPC messages from stdin
           (loop []
             (when-let [line (read-line)]
-              (let [response (process-message line)]
+              (let [response (if (> (count (.getBytes line "UTF-8")) MAX-REQUEST-SIZE)
+                               (handle-error nil (str "Request too large. Maximum size: 64 KB. "
+                                                    "For large code, use the load-file tool instead."))
+                               (process-message line))]
                 (println (json/generate-string response))
                 (flush))
               (recur))))
