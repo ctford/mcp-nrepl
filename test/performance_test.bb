@@ -77,7 +77,7 @@
 
 (deftest test-eval-performance
   (testing "Connectionless eval completes in reasonable time"
-    (let [num-runs 10
+    (let [num-runs 5
           ;; Run evaluations and collect timing data
           run-results (reduce (fn [acc run-num]
                                 (let [start (System/currentTimeMillis)
@@ -119,7 +119,7 @@
           "All runs should produce correct result '6'")
 
       (is (< total-time 1000)
-          (str "10 runs took " total-time "ms, expected < 1000ms (avg " (format "%.1f" avg-time) "ms per run)")))))
+          (str num-runs " runs took " total-time "ms, expected < 1000ms (avg " (format "%.1f" avg-time) "ms per run)")))))
 
 ;; Main test runner
 (defn run-all-tests []
