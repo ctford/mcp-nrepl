@@ -357,6 +357,28 @@
           (is (str/includes? error-msg "too large") "Error should mention size")
           (is (str/includes? error-msg "load-file") "Error should suggest load-file alternative"))))))
 
+(deftest test-tools-before-initialization
+  (testing "Handles tool calls before initialize (protocol violation)"
+    (let [port "7888"
+          ;; Try to call a tool without initializing first
+          tool-msg (json/generate-string
+                    {"jsonrpc" "2.0"
+                     "id" 1
+                     "method" "tools/call"
+                     "params" {"name" "eval-clojure"
+                               "arguments" {"code" "(+ 1 2 3)"}}})
+          result (run-mcp-with-input port tool-msg)
+          output (:out result)
+          lines (str/split-lines output)]
+      (color-print :green "✓ Tools before initialization test completed")
+      ;; Should get a response (either error or it works - both are acceptable)
+      (is (>= (count lines) 1) "Should get at least 1 response")
+      ;; The response should be valid JSON-RPC
+      (let [response (json/parse-string (first lines))]
+        (is (or (get response "result")
+                (get response "error"))
+            "Should return either result or error")))))
+
 ;; Main test runner
 (defn run-all-tests []
   (color-print :yellow "Starting misuse tests for mcp-nrepl...")
