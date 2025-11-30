@@ -203,18 +203,25 @@
       (color-print :green "✓ Apropos search successful")
       (is (str/includes? result "clojure.core/map")))))
 
-(deftest test-session-introspection
-  (testing "Can introspect session state"
+(deftest test-session-vars
+  (testing "Can list session variables"
     (let [port nrepl-port
-          [init define vars-resp ns-resp] (run-mcp port
-                                                    (mcp-initialize)
-                                                    (mcp-eval 6 "(defn test-fn [] 42)")
-                                                    (mcp-resource-read 7 "clojure://session/vars")
-                                                    (mcp-resource-read 10 "clojure://session/namespaces"))
-          vars (get-resource-text vars-resp)
+          [init define vars-resp] (run-mcp port
+                                           (mcp-initialize)
+                                           (mcp-eval 6 "(defn test-fn [] 42)")
+                                           (mcp-resource-read 7 "clojure://session/vars"))
+          vars (get-resource-text vars-resp)]
+      (color-print :green "✓ Session vars listing successful")
+      (is (str/includes? vars "test-fn")))))
+
+(deftest test-session-namespaces
+  (testing "Can list session namespaces"
+    (let [port nrepl-port
+          [init ns-resp] (run-mcp port
+                                  (mcp-initialize)
+                                  (mcp-resource-read 10 "clojure://session/namespaces"))
           namespaces (get-resource-text ns-resp)]
-      (color-print :green "✓ Session introspection successful")
-      (is (str/includes? vars "test-fn"))
+      (color-print :green "✓ Session namespaces listing successful")
       (is (str/includes? namespaces "user")))))
 
 (deftest test-connectionless-eval-mode
