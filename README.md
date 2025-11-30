@@ -127,10 +127,10 @@ This section is for developers who have cloned the repository and want to test m
 
 ### 1. Start an nREPL Server
 
-Use the provided helper script to start a test nREPL server:
+Start a Babashka nREPL server for testing:
 
 ```bash
-./start-nrepl.sh
+bb nrepl-server
 ```
 
 This will start a Babashka nREPL server and write the port to `.nrepl-port`.
@@ -228,6 +228,24 @@ Both test suites are written in Babashka for consistency and maintainability.
 - **Local Only**: Only connects to localhost nREPL servers
 - **Synchronous**: No async operation support
 - **Basic nREPL**: Uses core eval operations, not advanced middleware ops like `info` or `complete`
+
+## Security Considerations
+
+**MCP-nREPL grants full REPL access to AI assistants.** Before using this tool, understand the security implications:
+
+- **Arbitrary Code Execution**: AI assistants can evaluate any Clojure code in your nREPL session with your user permissions
+- **File System Access**: Code can read, write, and delete files accessible to your user account
+- **Network Access**: Code can make network requests and interact with external services
+- **Environment Access**: Code can read environment variables and system properties
+
+**Recommendations**:
+- Only use MCP-nREPL with trusted AI assistants and MCP clients
+- Review code suggestions before accepting them, especially system operations
+- Consider running in isolated environments (containers, VMs) for sensitive work
+- Be cautious when working with production credentials or sensitive data
+- The nREPL session shares state - one evaluation affects subsequent ones
+
+**This tool is intended for development workflows.** It provides the same level of access you have when typing at a REPL prompt.
 
 ## Contributing
 

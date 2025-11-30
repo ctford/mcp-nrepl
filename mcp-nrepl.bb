@@ -163,12 +163,12 @@
 
 (defn get-doc [symbol]
   "Get documentation for a symbol by evaluating (clojure.repl/doc symbol)"
-  (some-> (eval-nrepl-code (str "(clojure.repl/doc " symbol ")"))
+  (some-> (eval-nrepl-code (str "(clojure.repl/doc " (pr-str (symbol symbol)) ")"))
           extract-nrepl-output))
 
 (defn get-source [symbol]
   "Get source code for a symbol by evaluating (clojure.repl/source symbol)"
-  (some-> (eval-nrepl-code (str "(clojure.repl/source " symbol ")"))
+  (some-> (eval-nrepl-code (str "(clojure.repl/source " (pr-str (symbol symbol)) ")"))
           extract-nrepl-output))
 
 (defn get-session-vars []
@@ -343,6 +343,8 @@
     (cond
       (str/starts-with? uri DOC-URI-PREFIX)
       (let [symbol (subs uri (count DOC-URI-PREFIX))]
+        (when (str/blank? symbol)
+          (throw (Exception. "Symbol name cannot be empty")))
         (if-let [doc-content (get-doc symbol)]
           {"contents" [{"uri" uri
                        "mimeType" "text/plain"
@@ -353,6 +355,8 @@
 
       (str/starts-with? uri SOURCE-URI-PREFIX)
       (let [symbol (subs uri (count SOURCE-URI-PREFIX))]
+        (when (str/blank? symbol)
+          (throw (Exception. "Symbol name cannot be empty")))
         (if-let [source-content (get-source symbol)]
           {"contents" [{"uri" uri
                        "mimeType" "text/clojure"
@@ -363,6 +367,8 @@
 
       (str/starts-with? uri APROPOS-URI-PREFIX)
       (let [query (subs uri (count APROPOS-URI-PREFIX))]
+        (when (str/blank? query)
+          (throw (Exception. "Search query cannot be empty")))
         (if-let [results (get-apropos-results query)]
           {"contents" [{"uri" uri
                        "mimeType" "text/plain"
