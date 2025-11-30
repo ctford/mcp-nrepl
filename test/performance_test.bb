@@ -77,14 +77,49 @@
 
 (deftest test-eval-performance
   (testing "Connectionless eval completes in reasonable time"
-    (let [start (System/currentTimeMillis)
-          result (shell/sh "bb" "mcp-nrepl.bb" "--nrepl-port" nrepl-port "--eval" "(+ 1 2 3)")
-          elapsed (- (System/currentTimeMillis) start)
-          output (str/trim (:out result))]
-      (color-print :green (format "✓ Eval completed in %dms" elapsed))
-      (is (= "6" output) "Should return correct result")
-      (is (< elapsed 200)
-          (str "Eval took " elapsed "ms, expected < 200ms")))))
+    (let [num-runs 10
+          ;; Run evaluations and collect timing data
+          run-results (reduce (fn [acc run-num]
+                                (let [start (System/currentTimeMillis)
+                                      result (shell/sh "bb" "mcp-nrepl.bb"
+                                                      "--nrepl-port" nrepl-port
+                                                      "--eval" "(+ 1 2 3)")
+                                      elapsed (- (System/currentTimeMillis) start)]
+                                  (conj acc {:run run-num :elapsed elapsed :result result})))
+                              []
+                              (range 1 (inc num-runs)))
+
+          ;; Extract outputs and timings
+          outputs (mapv #(str/trim (:out (:result %))) run-results)
+          timings (mapv :elapsed run-results)
+
+          ;; Calculate aggregate statistics
+          total-time (reduce + timings)
+          avg-time (double (/ total-time (count timings)))
+          min-time (apply min timings)
+          max-time (apply max timings)
+          variance (/ (reduce + (map #(* (- % avg-time) (- % avg-time)) timings))
+                      (count timings))
+          stddev (Math/sqrt variance)]
+
+      ;; Print per-run timings
+      (color-print :yellow (format "Performance test results (%d runs):" num-runs))
+      (doseq [{:keys [run elapsed]} run-results]
+        (color-print :green (format "  Run %2d: %3dms" run elapsed)))
+
+      ;; Print aggregate statistics
+      (color-print :green (format "  Total:   %dms" total-time))
+      (color-print :green (format "  Average: %.1fms" avg-time))
+      (color-print :green (format "  Range:   %d-%dms" min-time max-time))
+      (color-print :green (format "  StdDev:  %.1fms" stddev))
+      (println)
+
+      ;; Assertions
+      (is (every? #(= "6" %) outputs)
+          "All runs should produce correct result '6'")
+
+      (is (< total-time 1000)
+          (str "10 runs took " total-time "ms, expected < 1000ms (avg " (format "%.1f" avg-time) "ms per run)")))))
 
 ;; Main test runner
 (defn run-all-tests []
