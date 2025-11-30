@@ -85,9 +85,11 @@
   (try
     (when-let [in (:nrepl-input-stream @state)]
       (let [response (bencode/read-bencode in)]
-        (when-not (map? response)
-          (log-error "Invalid nREPL response (not a map): %s" response))
-        response))
+        (if (map? response)
+          response
+          (do
+            (log-error "Invalid nREPL response (not a map): %s" response)
+            nil))))
     (catch Exception e
       (log-error "Failed to read nREPL response: %s" (.getMessage e))
       nil)))
