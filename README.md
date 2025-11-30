@@ -14,7 +14,7 @@ This project provides a bridge between the Model Context Protocol and nREPL, all
 
 - **Dual Mode Operation**: MCP server mode + connectionless eval mode (`--eval` flag)
 - **Minimal Dependencies**: Single Babashka script with no external dependencies
-- **Fast Execution**: ~28ms per evaluation in connectionless mode
+- **Fast Execution**: ~30ms per evaluation in connectionless mode
 - **MCP Compliant**: Implements core MCP protocol with tools and resources
 - **nREPL Integration**: Connects to existing nREPL servers (Babashka, Leiningen, Clojure CLI)
 - **Auto-Discovery**: Reads nREPL port from `.nrepl-port` file
