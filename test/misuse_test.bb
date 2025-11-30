@@ -6,18 +6,8 @@
             [clojure.string :as str]
             [clojure.java.shell :as shell]))
 
-;; ANSI color codes
-(def colors
-  {:red "\033[0;31m"
-   :green "\033[0;32m"
-   :yellow "\033[1;33m"
-   :nc "\033[0m"})
-
-(defn color-print [color & args]
-  (print (get colors color ""))
-  (apply print args)
-  (print (:nc colors))
-  (println))
+(load-file "test/test_utils.bb")
+(refer 'test-utils)
 
 ;; Test utilities
 (defn run-mcp-with-input [port input]
@@ -30,18 +20,8 @@
 (deftest test-no-nrepl-server
   (testing "Graceful failure when nREPL server is not available"
     (let [bad-port "9999"  ;; Likely no server on this port
-          init-msg (json/generate-string
-                    {"jsonrpc" "2.0"
-                     "id" 1
-                     "method" "initialize"
-                     "params" {"protocolVersion" "2024-11-05"
-                               "capabilities" {}}})
-          eval-msg (json/generate-string
-                    {"jsonrpc" "2.0"
-                     "id" 2
-                     "method" "tools/call"
-                     "params" {"name" "eval-clojure"
-                               "arguments" {"code" "(+ 1 2 3)"}}})
+          init-msg (make-init-msg 1)
+          eval-msg (make-tool-call-msg 2 "eval-clojure" {"code" "(+ 1 2 3)"})
           input (str init-msg "\n" eval-msg)
           result (run-mcp-with-input bad-port input)
           output (:out result)
@@ -97,18 +77,8 @@
 (deftest test-invalid-tool-name
   (testing "Handles requests for non-existent tools"
     (let [port "7888"
-          init-msg (json/generate-string
-                    {"jsonrpc" "2.0"
-                     "id" 1
-                     "method" "initialize"
-                     "params" {"protocolVersion" "2024-11-05"
-                               "capabilities" {}}})
-          bad-tool-msg (json/generate-string
-                        {"jsonrpc" "2.0"
-                         "id" 2
-                         "method" "tools/call"
-                         "params" {"name" "nonexistent-tool"
-                                   "arguments" {}}})
+          init-msg (make-init-msg 1)
+          bad-tool-msg (make-tool-call-msg 2 "nonexistent-tool" {})
           input (str init-msg "\n" bad-tool-msg)
           result (run-mcp-with-input port input)
           output (:out result)
@@ -124,24 +94,14 @@
 (deftest test-malformed-clojure-code
   (testing "Handles malformed Clojure code gracefully"
     (let [port "7888"
-          init-msg (json/generate-string
-                    {"jsonrpc" "2.0"
-                     "id" 1
-                     "method" "initialize"
-                     "params" {"protocolVersion" "2024-11-05"
-                               "capabilities" {}}})
+          init-msg (make-init-msg 1)
           bad-code-cases ["(+ 1 2"  ;; Unclosed paren
                          "(defn)"    ;; Invalid defn
                          "((((("      ;; Too many parens
                          ")("         ;; Invalid structure
                          ]
           test-case (fn [bad-code]
-                     (let [eval-msg (json/generate-string
-                                     {"jsonrpc" "2.0"
-                                      "id" 2
-                                      "method" "tools/call"
-                                      "params" {"name" "eval-clojure"
-                                                "arguments" {"code" bad-code}}})
+                     (let [eval-msg (make-tool-call-msg 2 "eval-clojure" {"code" bad-code})
                            input (str init-msg "\n" eval-msg)
                            result (run-mcp-with-input port input)
                            output (:out result)
@@ -331,18 +291,8 @@
     (let [port "7888"
           ;; Create a large code string > 64 KB
           large-code (apply str (repeat 70000 "x"))
-          init-msg (json/generate-string
-                    {"jsonrpc" "2.0"
-                     "id" 1
-                     "method" "initialize"
-                     "params" {"protocolVersion" "2024-11-05"
-                               "capabilities" {}}})
-          large-request (json/generate-string
-                         {"jsonrpc" "2.0"
-                          "id" 2
-                          "method" "tools/call"
-                          "params" {"name" "eval-clojure"
-                                    "arguments" {"code" large-code}}})
+          init-msg (make-init-msg 1)
+          large-request (make-tool-call-msg 2 "eval-clojure" {"code" large-code})
           input (str init-msg "\n" large-request)
           result (run-mcp-with-input port input)
           output (:out result)
@@ -361,12 +311,7 @@
   (testing "Handles tool calls before initialize (protocol violation)"
     (let [port "7888"
           ;; Try to call a tool without initializing first
-          tool-msg (json/generate-string
-                    {"jsonrpc" "2.0"
-                     "id" 1
-                     "method" "tools/call"
-                     "params" {"name" "eval-clojure"
-                               "arguments" {"code" "(+ 1 2 3)"}}})
+          tool-msg (make-tool-call-msg 1 "eval-clojure" {"code" "(+ 1 2 3)"})
           result (run-mcp-with-input port tool-msg)
           output (:out result)
           lines (str/split-lines output)]
