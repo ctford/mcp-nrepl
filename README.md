@@ -249,6 +249,10 @@ All test suites are written in Babashka for consistency and maintainability.
 
 **This tool is intended for development workflows.** It provides the same level of access you have when typing at a REPL prompt.
 
+## Built With AI
+
+MCP-nREPL was built with [Claude Code](https://claude.com/claude-code), an AI-powered coding assistant. If you're looking for an MCP server, I assume you're comfortable with AI assistance in development.
+
 ## Contributing
 
 This is a minimal implementation focused on core functionality. Contributions should maintain the simplicity and readability goals of the project.
