@@ -117,22 +117,15 @@
 
 (defn setup-nrepl []
   "Ensure nREPL is running and return port"
-  (cond
-    ;; 1. Check for NREPL_PORT environment variable
-    (System/getenv "NREPL_PORT")
-    (let [port (System/getenv "NREPL_PORT")]
+  (if-let [port (System/getenv "NREPL_PORT")]
+    (do
       (color-print :green "Using NREPL_PORT from environment: " port)
       port)
-
-    ;; 2. Check for .nrepl-port file
-    (fs/exists? ".nrepl-port")
-    (let [port (str/trim (slurp ".nrepl-port"))]
-      (color-print :green "Found existing .nrepl-port file with port: " port)
-      port)
-
-    ;; 3. Start new server
-    :else
-    (start-nrepl-server)))
+    (if (fs/exists? ".nrepl-port")
+      (let [port (str/trim (slurp ".nrepl-port"))]
+        (color-print :green "Found existing .nrepl-port file with port: " port)
+        port)
+      (start-nrepl-server))))
 
 ;; Set up nREPL once before all tests
 (def nrepl-port

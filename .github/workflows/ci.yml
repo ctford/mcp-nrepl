@@ -22,5 +22,12 @@ jobs:
     - name: Verify Babashka installation
       run: bb --version
 
+    - name: Start nREPL server
+      run: |
+        bb nrepl-server localhost:7888 &
+        sleep 2
+
     - name: Run tests
+      env:
+        NREPL_PORT: 7888
       run: ./run-tests.sh
