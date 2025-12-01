@@ -212,16 +212,17 @@
         (color-print :green "✅ All end-to-end tests passed!")
         (color-print :green (format "   %d tests, %d assertions"
                                     (:test results)
-                                    (:pass results)))
-        (System/exit 0))
+                                    (:pass results))))
       (do
         (color-print :red "❌ Some tests failed")
         (color-print :red (format "   %d passed, %d failed, %d errors"
                                   (:pass results)
                                   (:fail results)
-                                  (:error results)))
-        (System/exit 1)))))
+                                  (:error results)))))
+    results))
 
 ;; Entry point
 (when (= *file* (System/getProperty "babashka.file"))
-  (run-all-tests))
+  (let [results (run-all-tests)]
+    (when (or (> (:fail results) 0) (> (:error results) 0))
+      (System/exit 1))))

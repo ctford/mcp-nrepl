@@ -325,9 +325,10 @@
                      (:pass results)
                      (:fail results)
                      (:error results)))
-    (when (or (> (:fail results) 0) (> (:error results) 0))
-      (System/exit 1))))
+    results))
 
 ;; Entry point
 (when (= *file* (System/getProperty "babashka.file"))
-  (run-all-tests))
+  (let [results (run-all-tests)]
+    (when (or (> (:fail results) 0) (> (:error results) 0))
+      (System/exit 1))))
