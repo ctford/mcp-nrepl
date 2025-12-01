@@ -39,6 +39,12 @@
 (defn mcp-load-file [id file-path]
   (json/parse-string (make-tool-call-msg id "load-file" {"file-path" file-path})))
 
+;; Switch to misuse namespace for isolation from other test suites
+(let [[init set-ns-resp] (run-mcp "7888"
+                                  (mcp-initialize)
+                                  (mcp-set-ns 998 "misuse"))]
+  (color-print :green "Switched to misuse namespace for test isolation"))
+
 ;; Misuse Tests
 
 (deftest test-no-nrepl-server

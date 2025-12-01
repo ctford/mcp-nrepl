@@ -74,6 +74,12 @@
   "Port for nREPL server, set up once before all tests run"
   (setup-nrepl))
 
+;; Switch to e2e namespace for isolation from other test suites
+(let [[init set-ns-resp] (run-mcp nrepl-port
+                                  (mcp-initialize)
+                                  (mcp-set-ns 999 "e2e"))]
+  (color-print :green "Switched to e2e namespace for test isolation"))
+
 ;; E2E Tests
 (deftest test-mcp-initialization
   (testing "MCP protocol initialization works"
