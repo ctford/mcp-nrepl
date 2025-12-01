@@ -159,6 +159,26 @@
       (color-print :green "✓ Session namespaces listing successful")
       (is (str/includes? namespaces "user")))))
 
+(deftest test-doc-resource
+  (testing "Doc resource retrieval"
+    (let [port nrepl-port
+          [init doc-resp] (run-mcp port
+                                   (mcp-initialize)
+                                   (mcp-resource-read 11 "clojure://doc/map"))
+          doc-text (get-resource-text doc-resp)]
+      (color-print :green "✓ Doc resource retrieval successful")
+      (is (some? doc-text) "Doc resource should return content"))))
+
+(deftest test-source-resource
+  (testing "Source resource retrieval"
+    (let [port nrepl-port
+          [init source-resp] (run-mcp port
+                                      (mcp-initialize)
+                                      (mcp-resource-read 12 "clojure://source/map"))
+          source-text (get-resource-text source-resp)]
+      (color-print :green "✓ Source resource retrieval successful")
+      (is (some? source-text) "Source resource should return content"))))
+
 (deftest test-connectionless-eval-mode
   (testing "Connectionless eval mode works"
     (let [result (shell/sh "bb" "mcp-nrepl.bb" "--nrepl-port" nrepl-port "--eval" "(+ 1 2 3)")

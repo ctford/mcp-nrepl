@@ -164,15 +164,23 @@
        (map decode-bytes)
        first))
 
-(defn get-doc [symbol]
-  "Get documentation for a symbol by evaluating (clojure.repl/doc symbol)"
-  (some-> (eval-nrepl-code (str "(clojure.repl/doc " (pr-str (symbol symbol)) ")"))
-          extract-nrepl-output))
+(defn valid-symbol-name? [s]
+  "Check if string is a valid, safe symbol name (alphanumeric, -, _, *, +, !, ?, <, >, =, /)"
+  (and (string? s)
+       (not (str/blank? s))
+       (re-matches #"^[a-zA-Z0-9\-_\*\+\!\?\<\>\=/\.]+$" s)))
 
-(defn get-source [symbol]
+(defn get-doc [symbol-str]
+  "Get documentation for a symbol by evaluating (clojure.repl/doc symbol)"
+  (when (valid-symbol-name? symbol-str)
+    (some-> (eval-nrepl-code (str "(clojure.repl/doc " symbol-str ")"))
+            extract-nrepl-output)))
+
+(defn get-source [symbol-str]
   "Get source code for a symbol by evaluating (clojure.repl/source symbol)"
-  (some-> (eval-nrepl-code (str "(clojure.repl/source " (pr-str (symbol symbol)) ")"))
-          extract-nrepl-output))
+  (when (valid-symbol-name? symbol-str)
+    (some-> (eval-nrepl-code (str "(clojure.repl/source " symbol-str ")"))
+            extract-nrepl-output)))
 
 (defn get-session-vars []
   "Get list of public variables in current namespace"
