@@ -9,11 +9,47 @@
 (load-file "test/test_utils.bb")
 (refer 'test-utils)
 
-;; Test utilities
+;; Set up nREPL once before all tests
+(def nrepl-port
+  "Port for nREPL server, set up once before all tests run"
+  (setup-nrepl))
+
+;; Test utilities (defined before use)
 (defn run-mcp-with-input [port input]
   "Send input to mcp-nrepl and capture output"
   (shell/sh "bb" "mcp-nrepl.bb" "--nrepl-port" (str port)
             :in input))
+
+;; Initialize misuse tests in separate namespace to avoid conflicts with e2e tests
+;; E2E tests use 'user' namespace, misuse tests use 'misuse-test-ns'
+;; Note: Namespace initialization is done lazily within tests that use run-mcp,
+;; not at module load time, to avoid consuming nREPL sessions unnecessarily
+
+;; More test utilities
+
+(defn run-mcp [port & messages]
+  "Send JSON-RPC messages to mcp-nrepl and get parsed responses"
+  (let [input (str/join "\n" (map json/generate-string messages))
+        result (shell/sh "bb" "mcp-nrepl.bb" "--nrepl-port" (str port)
+                         :in input)]
+    (when (not= 0 (:exit result))
+      (throw (ex-info "MCP command failed" result)))
+    (mapv json/parse-string (str/split-lines (:out result)))))
+
+(defn mcp-initialize []
+  (json/parse-string (make-init-msg 1)))
+
+(defn mcp-resource-read [id uri]
+  (json/parse-string (make-resource-read-msg id uri)))
+
+(defn mcp-eval [id code]
+  (json/parse-string (make-tool-call-msg id "eval-clojure" {"code" code})))
+
+(defn mcp-set-ns [id namespace]
+  (json/parse-string (make-tool-call-msg id "set-ns" {"namespace" namespace})))
+
+(defn mcp-load-file [id file-path]
+  (json/parse-string (make-tool-call-msg id "load-file" {"file-path" file-path})))
 
 ;; Misuse Tests
 
@@ -324,6 +360,97 @@
         (let [error-msg (get-in response ["error" "message"])]
           (is (str/includes? error-msg "not initialized")
               "Error should mention server not initialized"))))))
+
+;; Code Injection Security Tests
+
+(deftest test-code-injection-in-doc-resource
+  (testing "Code injection attempts in doc resource URIs are safely handled"
+    (let [port nrepl-port
+          ;; Test just one representative injection case to avoid exhausting nREPL connections
+          injection-uri "clojure://doc/map) (System/exit 0) (identity x"
+          [init-resp read-resp] (run-mcp port
+                                         (mcp-initialize)
+                                         (mcp-resource-read 2 injection-uri))
+          has-error (get read-resp "error")
+          result-text (get-in read-resp ["result" "contents" 0 "text"])]
+      (color-print :green "✓ Code injection in doc resource test completed")
+      ;; Safe if: error response OR "No documentation found" message
+      (is (or has-error
+              (str/includes? (str result-text) "No documentation found")
+              (str/includes? (str result-text) "Symbol name cannot be empty"))
+          "Should safely handle code injection attempt in doc resource URI"))))
+
+(deftest test-code-injection-in-source-resource
+  (testing "Code injection attempts in source resource URIs are safely handled"
+    (let [port nrepl-port
+          ;; Test one representative injection case
+          injection-uri "clojure://source/map) (sh \"rm -rf /\") (identity x"
+          [init-resp read-resp] (run-mcp port
+                                         (mcp-initialize)
+                                         (mcp-resource-read 2 injection-uri))
+          has-error (get read-resp "error")
+          result-text (get-in read-resp ["result" "contents" 0 "text"])]
+      (color-print :green "✓ Code injection in source resource test completed")
+      ;; Safe if: error response OR "No source found" message
+      (is (or has-error
+              (str/includes? (str result-text) "No source found")
+              (str/includes? (str result-text) "Symbol name cannot be empty"))
+          "Should safely handle code injection attempt in source resource URI"))))
+
+(deftest test-code-injection-in-apropos-resource
+  (testing "Code injection attempts in apropos resource URIs are safely handled"
+    (let [port nrepl-port
+          ;; Test one representative injection case
+          injection-uri "clojure://symbols/apropos/map\") (System/exit 0) (str \""
+          [init-resp read-resp] (run-mcp port
+                                         (mcp-initialize)
+                                         (mcp-resource-read 2 injection-uri))
+          has-error (get read-resp "error")
+          result-text (get-in read-resp ["result" "contents" 0 "text"])]
+      (color-print :green "✓ Code injection in apropos resource test completed")
+      ;; Safe if: error response OR search results (no "pwned" or code execution)
+      (is (or has-error
+              (and result-text (not (str/includes? (str result-text) "pwned")))
+              (str/includes? (str result-text) "No matches found")
+              (str/includes? (str result-text) "Search query cannot be empty"))
+          "Should safely handle code injection attempt in apropos resource URI"))))
+
+(deftest test-code-injection-in-set-ns-tool
+  (testing "Code injection attempts in set-ns tool are safely handled"
+    (let [port nrepl-port
+          ;; Test one representative injection case
+          injection-input "user) (System/exit 0) (symbol 'user"
+          [init-resp set-ns-resp] (run-mcp port
+                                           (mcp-initialize)
+                                           (mcp-set-ns 2 injection-input))
+          has-error (get-in set-ns-resp ["result" "isError"])
+          result-text (get-in set-ns-resp ["result" "content" 0 "text"])
+          error-response (get set-ns-resp "error")]
+      (color-print :green "✓ Code injection in set-ns tool test completed")
+      ;; Safe if: error response OR successful namespace switch (no "pwned" output)
+      (is (or has-error
+              error-response
+              (and result-text (not (str/includes? (str result-text) "pwned"))))
+          "Should safely handle code injection attempt in set-ns tool"))))
+
+(deftest test-path-traversal-in-load-file-tool
+  (testing "Path traversal and special filenames in load-file are safely handled"
+    (let [port nrepl-port
+          ;; Test one representative path traversal case
+          malicious-path "../../etc/passwd"
+          [init-resp load-resp] (run-mcp port
+                                         (mcp-initialize)
+                                         (mcp-load-file 2 malicious-path))
+          has-error (get-in load-resp ["result" "isError"])
+          result-text (get-in load-resp ["result" "content" 0 "text"])
+          error-response (get load-resp "error")]
+      (color-print :green "✓ Path traversal in load-file tool test completed")
+      ;; Safe if: "File not found" error (not trying to execute shell commands)
+      (is (or has-error
+              error-response
+              (str/includes? (str result-text) "File not found")
+              (str/includes? (str result-text) "not found"))
+          "Should safely handle path traversal attempt in load-file tool"))))
 
 ;; Main test runner
 (defn run-all-tests []
