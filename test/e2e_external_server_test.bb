@@ -107,7 +107,11 @@
     (mapv json/parse-string (str/split-lines (:out result)))))
 
 (defn get-result-text [response]
-  (get-in response ["result" "content" 0 "text"]))
+  "Extract text from all content blocks, joining with newlines for structured output"
+  (let [content (get-in response ["result" "content"])]
+    (->> content
+         (map #(get % "text"))
+         (str/join "\n"))))
 
 ;; Set up nREPL once before all tests
 (def nrepl-port

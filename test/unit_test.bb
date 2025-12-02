@@ -231,13 +231,17 @@
 
 ;; Test helper function: format-tool-result
 (deftest format-tool-result-formats-responses-correctly
-  (testing "Formats responses with values, output, and errors"
+  (testing "Formats responses with values, output, and errors as separate blocks"
     (let [responses [{"value" (.getBytes "42" "UTF-8")}
                      {"out" (.getBytes "debug output" "UTF-8")}
                      {"err" (.getBytes "warning" "UTF-8")}]
           result (mcp-nrepl/format-tool-result responses)
           expected {"content" [{"type" "text"
-                               "text" "debug output\nwarning\n42"}]}]
+                               "text" "debug output"}
+                              {"type" "text"
+                               "text" "warning"}
+                              {"type" "text"
+                               "text" "42"}]}]
       (is (= expected result))))
 
   (testing "Uses default message when result is empty"

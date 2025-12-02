@@ -210,20 +210,30 @@
        (map decode-bytes)))
 
 (defn format-tool-result
-  "Format nREPL responses into a tool result"
+  "Format nREPL responses into a tool result with structured output.
+   Returns separate content blocks for stdout, stderr, and return values."
   [responses & {:keys [default-message]}]
   (let [values (extract-field-from-responses responses "value")
         output (str/join "\n" (extract-field-from-responses responses "out"))
         errors (str/join "\n" (extract-field-from-responses responses "err"))
-        result-text (str/join "\n"
-                              (concat
-                               (when-not (str/blank? output) [output])
-                               (when-not (str/blank? errors) [errors])
-                               values))]
-    {"content" [{"type" "text"
-                "text" (if (str/blank? result-text)
-                         (or default-message "nil")
-                         result-text)}]}))
+        content-blocks (vec (concat
+                             ;; Add stdout block if present
+                             (when-not (str/blank? output)
+                               [{"type" "text"
+                                 "text" output}])
+                             ;; Add stderr block if present
+                             (when-not (str/blank? errors)
+                               [{"type" "text"
+                                 "text" errors}])
+                             ;; Add value blocks
+                             (map (fn [value]
+                                    {"type" "text"
+                                     "text" value})
+                                  values)))]
+    {"content" (if (empty? content-blocks)
+                 [{"type" "text"
+                   "text" (or default-message "nil")}]
+                 content-blocks)}))
 
 (defn format-tool-error
   "Format an error message as a tool response"
@@ -335,7 +345,9 @@
   "Search for symbols matching a pattern"
   (some-> (eval-nrepl-code (build-apropos-code query))
           format-tool-result
-          (get-in ["content" 0 "text"])))
+          (get "content")
+          (->> (map #(get % "text"))
+               (str/join "\n"))))
 
 (defn handle-tools-call [params]
   (let [tool-name (get params "name")

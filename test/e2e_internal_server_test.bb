@@ -111,7 +111,11 @@
          (mapv json/parse-string))))
 
 (defn get-result-text [response]
-  (get-in response ["result" "content" 0 "text"]))
+  "Extract text from all content blocks, joining with newlines for structured output"
+  (let [content (get-in response ["result" "content"])]
+    (->> content
+         (map #(get % "text"))
+         (str/join "\n"))))
 
 ;; Switch to e2e-internal namespace for isolation from other test suites
 (let [[init set-ns-resp] (run-mcp (mcp-initialize)
