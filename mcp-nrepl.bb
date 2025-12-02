@@ -619,16 +619,12 @@
                     port (.getLocalPort (:socket server))]
                 (System/setOut original-out)
                 (swap! state assoc :embedded-server server :nrepl-port port)
-                (binding [*out* *err*]
-                  (println (str "Started embedded nREPL server on port " port)))
                 ;; Add shutdown hook to stop server on exit
                 (-> (Runtime/getRuntime)
                     (.addShutdownHook
                      (Thread. (fn []
                                (when-let [srv (:embedded-server @state)]
-                                 (binding [*out* *err*]
-                                   (println "Stopping embedded nREPL server..."))
-                                 (nrepl-server/stop-server! srv)))))))
+                                   (nrepl-server/stop-server! srv)))))))
               (finally
                 (System/setOut original-out)))))
 
