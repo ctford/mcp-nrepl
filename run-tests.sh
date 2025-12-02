@@ -52,9 +52,16 @@ if ! bb test/unit_test.bb; then
 fi
 echo
 
-# Run E2E tests
-echo "→ Running end-to-end tests (full integration)..."
-if ! bb test/e2e_test.bb; then
+# Run E2E tests - External Server
+echo "→ Running end-to-end tests with external server (full integration)..."
+if ! bb test/e2e_external_server_test.bb; then
+  overall_status=1
+fi
+echo
+
+# Run E2E tests - Internal Server
+echo "→ Running end-to-end tests with embedded server (--server mode)..."
+if ! bb test/e2e_internal_server_test.bb; then
   overall_status=1
 fi
 echo

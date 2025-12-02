@@ -1,5 +1,6 @@
 (ns mcp-nrepl
   (:require [babashka.fs :as fs]
+            [babashka.nrepl.server :as nrepl-server]
             [cheshire.core :as json]
             [clojure.string :as str]
             [clojure.tools.cli :as cli]
@@ -20,7 +21,8 @@
                   :nrepl-output-stream nil
                   :session-id nil
                   :initialized false
-                  :nrepl-port nil}))
+                  :nrepl-port nil
+                  :embedded-server nil}))
 
 ;; Utility functions
 (defn log-error [msg & args]
@@ -459,6 +461,7 @@
   [["-p" "--nrepl-port PORT" "Connect to nREPL server on specified port"
     :parse-fn parse-port
     :validate [integer? "Must be a valid port number"]]
+   ["-s" "--server" "Start embedded nREPL server (no external server needed)"]
    ["-e" "--eval CODE" "Evaluate Clojure code and print result (connectionless eval mode)"]
    ["-h" "--help" "Show this help message"]])
 
@@ -466,7 +469,8 @@
   (->> ["mcp-nrepl - MCP server bridge to nREPL"
         ""
         "Usage: mcp-nrepl.bb [OPTIONS]"
-        "       mcp-nrepl.bb --eval CODE"
+        "       mcp-nrepl.bb --server          # Start with embedded nREPL server"
+        "       mcp-nrepl.bb --eval CODE       # Evaluate code"
         ""
         "Options:"
         options-summary
@@ -475,7 +479,10 @@
         "  MCP Server Mode (default): Reads MCP JSON-RPC messages from stdin"
         "  Connectionless Eval Mode (--eval): Evaluates code and prints result"
         ""
-        "If no port is specified, reads from .nrepl-port file in current directory."]
+        "Server Options:"
+        "  --server: Start an embedded nREPL server (no external server needed)"
+        "  --nrepl-port PORT: Connect to external nREPL server on specified port"
+        "  If neither is specified, reads from .nrepl-port file in current directory."]
        (str/join \newline)))
 
 (defn error-msg [errors]
@@ -514,9 +521,34 @@
         (println exit-message)
         (System/exit (if ok? 0 1)))
       (try
-        ;; Set nREPL port from options if provided
+        ;; Start embedded nREPL server if --server option is provided
+        (when (:server options)
+          ;; Suppress stdout during server startup by temporarily redirecting System.out
+          (let [original-out System/out
+                null-stream (java.io.PrintStream. (java.io.ByteArrayOutputStream.))]
+            (try
+              (System/setOut null-stream)
+              (let [server (nrepl-server/start-server! {:host "localhost" :port 0})
+                    port (.getLocalPort (:socket server))]
+                (System/setOut original-out)
+                (swap! state assoc :embedded-server server :nrepl-port port)
+                (binding [*out* *err*]
+                  (println (str "Started embedded nREPL server on port " port)))
+                ;; Add shutdown hook to stop server on exit
+                (-> (Runtime/getRuntime)
+                    (.addShutdownHook
+                     (Thread. (fn []
+                               (when-let [srv (:embedded-server @state)]
+                                 (binding [*out* *err*]
+                                   (println "Stopping embedded nREPL server..."))
+                                 (nrepl-server/stop-server! srv)))))))
+              (finally
+                (System/setOut original-out)))))
+
+        ;; Set nREPL port from options if provided (overrides embedded server port)
         (when-let [port (:nrepl-port options)]
-          (swap! state assoc :nrepl-port port))
+          (when-not (:server options)  ; Don't override if using embedded server
+            (swap! state assoc :nrepl-port port)))
 
         ;; Check if we're in eval mode or MCP server mode
         (if-let [code (:eval options)]

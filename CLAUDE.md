@@ -77,8 +77,23 @@ No external dependencies required! The script uses only built-in Babashka librar
 
 ## Usage
 
-### Port Configuration
-The script supports flexible port configuration:
+### Server Configuration
+
+The script supports two modes for running an nREPL server:
+
+**Embedded Server Mode (--server)**
+The simplest way to get started - no external nREPL server needed:
+
+```bash
+# Start with embedded nREPL server (auto-selects available port)
+bb mcp-nrepl.bb --server
+
+# Works with eval mode too
+bb mcp-nrepl.bb --server --eval "(+ 1 2 3)"
+```
+
+**External Server Mode (--nrepl-port)**
+Connect to an existing nREPL server for access to project dependencies:
 
 ```bash
 # Command-line argument (preferred)

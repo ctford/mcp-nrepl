@@ -13,6 +13,7 @@ This project provides a bridge between the Model Context Protocol and nREPL, all
 ## Features
 
 - **Dual Mode Operation**: MCP server mode + connectionless eval mode (`--eval` flag)
+- **Embedded Server**: Use `--server` flag to start with built-in nREPL server (no separate server needed)
 - **Minimal Dependencies**: Single Babashka script with no external dependencies
 - **Fast Execution**: ~30ms per evaluation
 - **MCP Compliant**: Implements core MCP protocol with tools and resources
@@ -80,25 +81,38 @@ If you prefer to use Claude Desktop instead, edit your Claude Desktop configurat
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
-Add the mcp-nrepl server:
+Add the mcp-nrepl server with embedded server mode (recommended):
 
 ```json
 {
   "mcpServers": {
     "mcp-nrepl": {
       "command": "bb",
-      "args": ["/Users/yourname/.mcp-servers/mcp-nrepl.bb"],
+      "args": ["/Users/yourname/.mcp-servers/mcp-nrepl.bb", "--server"],
       "_comment": "Replace /Users/yourname with your actual home directory path"
     }
   }
 }
 ```
 
-**Port Configuration**: By default, mcp-nrepl reads the port from `.nrepl-port` in your working directory. Since Claude Desktop's working directory may not be your project root, you may need to add `"--nrepl-port", "1667"` to the args array to specify the port explicitly.
+**Alternative - External Server**: If you want to connect to an existing nREPL server with project dependencies loaded, you can specify the port instead:
+
+```json
+{
+  "mcpServers": {
+    "mcp-nrepl": {
+      "command": "bb",
+      "args": ["/Users/yourname/.mcp-servers/mcp-nrepl.bb", "--nrepl-port", "1667"]
+    }
+  }
+}
+```
 
 ### 4. Start nREPL and Restart
 
-Before using mcp-nrepl, start an nREPL server in your project:
+**If using --server**: Skip this step - the embedded server starts automatically.
+
+**If connecting to external nREPL**: Start an nREPL server in your project:
 ```bash
 cd /path/to/your/clojure/project
 lein repl           # Leiningen
