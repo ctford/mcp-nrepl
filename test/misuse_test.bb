@@ -30,8 +30,8 @@
 (defn mcp-eval [id code]
   (json/parse-string (make-tool-call-msg id "eval-clojure" {"code" code})))
 
-(defn mcp-set-ns [id namespace]
-  (json/parse-string (make-tool-call-msg id "set-ns" {"namespace" namespace})))
+(defn mcp-set-namespace [id namespace]
+  (json/parse-string (make-tool-call-msg id "set-namespace" {"namespace" namespace})))
 
 (defn mcp-load-file [id file-path]
   (json/parse-string (make-tool-call-msg id "load-file" {"file-path" file-path})))
@@ -48,7 +48,7 @@
 ;; Switch to misuse namespace for isolation from other test suites
 (let [[init set-ns-resp] (run-mcp "7888"
                                   (mcp-initialize)
-                                  (mcp-set-ns 998 "misuse"))]
+                                  (mcp-set-namespace 998 "misuse"))]
   (color-print :green "Switched to misuse namespace for test isolation"))
 
 ;; Misuse Tests
@@ -304,7 +304,7 @@
                                 {"jsonrpc" "2.0"
                                  "id" 2
                                  "method" "tools/call"
-                                 "params" {"name" "set-ns"
+                                 "params" {"name" "set-namespace"
                                            "arguments" {"namespace" ns-name}}})
                            input (str init-msg "\n" msg)
                            result (run-mcp-with-input port input)
@@ -426,7 +426,7 @@
           injection-input "user) (System/exit 0) (symbol 'user"
           [init-resp set-ns-resp] (run-mcp port
                                            (mcp-initialize)
-                                           (mcp-set-ns 2 injection-input))
+                                           (mcp-set-namespace 2 injection-input))
           has-error (get-in set-ns-resp ["result" "isError"])
           result-text (get-in set-ns-resp ["result" "content" 0 "text"])
           error-response (get set-ns-resp "error")]

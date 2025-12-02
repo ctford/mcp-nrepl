@@ -225,7 +225,7 @@ MCP-nREPL provides 9 tools:
   - Parameters: `file-path` (string, required)
   - Returns: Success message or evaluation output
   - Validates file existence before loading
-- **set-ns** - Switch to a different namespace
+- **set-namespace** - Switch to a different namespace
   - Parameters: `namespace` (string, required)
   - Returns: Confirmation of namespace switch
   - Creates namespace if it doesn't exist

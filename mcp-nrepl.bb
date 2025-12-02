@@ -272,7 +272,7 @@
       {"file-path" {"type" "string"
                     "description" "The path to the Clojure file to load"}}
       "required" ["file-path"]}}
-    {"name" "set-ns"
+    {"name" "set-namespace"
      "description" "Switch to a different namespace in the nREPL session"
      "inputSchema"
      {"type" "object"
@@ -355,7 +355,7 @@
               :default-message (str "Successfully loaded file: " file-path))
             (format-tool-error (str "Error: File not found: " file-path)))))
 
-      "set-ns"
+      "set-namespace"
       (with-required-param arguments "namespace" "switching namespace"
         (fn [namespace]
           (format-tool-result

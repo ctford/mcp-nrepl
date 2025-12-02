@@ -68,7 +68,7 @@
       (is (= 9 (count tools)) "Should have 9 tools")
       (is (some #(= "eval-clojure" (get % "name")) tools))
       (is (some #(= "load-file" (get % "name")) tools))
-      (is (some #(= "set-ns" (get % "name")) tools))
+      (is (some #(= "set-namespace" (get % "name")) tools))
       (is (some #(= "doc" (get % "name")) tools))
       (is (some #(= "source" (get % "name")) tools))
       (is (some #(= "apropos" (get % "name")) tools))

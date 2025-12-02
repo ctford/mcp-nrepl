@@ -132,7 +132,7 @@ echo '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "ev
 echo '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "load-file", "arguments": {"file-path": "src/my-file.clj"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
 
 # Switch namespace
-echo '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "set-ns", "arguments": {"namespace": "my.namespace"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "set-namespace", "arguments": {"namespace": "my.namespace"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
 
 # Search for symbols matching a pattern
 echo '{"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "apropos", "arguments": {"query": "map"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
@@ -159,7 +159,7 @@ MCP-nREPL provides 9 tools for interacting with the nREPL session:
   - Returns: Success message or evaluation output
   - Handles file existence validation
 
-- **`set-ns`** - Switch to a different namespace in the REPL session
+- **`set-namespace`** - Switch to a different namespace in the REPL session
   - Parameters: `namespace` (string) - The namespace to switch to
   - Returns: Confirmation of namespace switch
   - Creates namespace if it doesn't exist

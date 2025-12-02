@@ -34,11 +34,11 @@
    "params" {"name" "load-file"
              "arguments" {"file-path" file-path}}})
 
-(defn mcp-set-ns [id namespace]
+(defn mcp-set-namespace [id namespace]
   {"jsonrpc" "2.0"
    "id" id
    "method" "tools/call"
-   "params" {"name" "set-ns"
+   "params" {"name" "set-namespace"
              "arguments" {"namespace" namespace}}})
 
 (defn mcp-apropos [id query]
@@ -117,7 +117,7 @@
 ;; Switch to e2e namespace for isolation from other test suites
 (let [[init set-ns-resp] (run-mcp nrepl-port
                                   (mcp-initialize)
-                                  (mcp-set-ns 999 "e2e-external"))]
+                                  (mcp-set-namespace 999 "e2e-external"))]
   (color-print :green "Switched to e2e namespace for test isolation"))
 
 ;; E2E Tests
@@ -168,7 +168,7 @@
     (let [port nrepl-port
           [init set-ns-resp get-ns-resp] (run-mcp port
                                                    (mcp-initialize)
-                                                   (mcp-set-ns 14 "clojure.set")
+                                                   (mcp-set-namespace 14 "clojure.set")
                                                    (mcp-get-current-namespace 15))
           current-ns (get-result-text get-ns-resp)]
       (color-print :green "✓ Namespace switch successful: " current-ns)
