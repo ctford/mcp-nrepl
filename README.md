@@ -249,6 +249,7 @@ All test suites are written in Babashka for consistency and maintainability.
 - **Local Only**: Only connects to localhost nREPL servers
 - **Synchronous**: No async operation support
 - **Basic nREPL**: Uses core eval operations, not advanced middleware ops like `info` or `complete`
+- **Embedded Server Stdout**: When using `--server` mode, the embedded nREPL server prints startup/shutdown messages to stdout (e.g., "Started embedded nREPL server on port 12345"). MCP clients may log these as JSON parse warnings, but functionality is unaffected - the MCP protocol continues to work normally
 
 ## Security Considerations
 
