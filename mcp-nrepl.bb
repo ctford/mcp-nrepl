@@ -250,7 +250,8 @@
     (swap! state assoc :initialized true)
     {"protocolVersion" MCP-VERSION
      "capabilities" {"tools" {}
-                     "resources" {}}
+                     "resources" {}
+                     "prompts" {}}
      "serverInfo" SERVER-INFO}))
 
 (defn handle-tools-list []
@@ -420,6 +421,90 @@
       :else
       (throw (Exception. (str "Unknown resource URI: " uri))))))
 
+(defn handle-prompts-list []
+  {"prompts"
+   [{"name" "explore-namespace"
+     "description" "Guide users through exploring their current REPL session state"
+     "arguments" []}
+
+    {"name" "define-and-test"
+     "description" "Guide proper function definition and testing workflow"
+     "arguments" [{"name" "function-name"
+                   "description" "The name of the function to define"
+                   "required" true}
+                  {"name" "function-code"
+                   "description" "The complete function definition code"
+                   "required" true}]}
+
+    {"name" "load-and-explore"
+     "description" "Guide proper file loading and namespace exploration"
+     "arguments" [{"name" "file-path"
+                   "description" "Path to the Clojure file to load"
+                   "required" true}]}
+
+    {"name" "debug-error"
+     "description" "Guide systematic troubleshooting of errors"
+     "arguments" [{"name" "error-code"
+                   "description" "The code that is producing an error"
+                   "required" true}]}
+
+    {"name" "search-and-learn"
+     "description" "Guide discovering and learning about Clojure functions"
+     "arguments" [{"name" "search-term"
+                   "description" "The term to search for in symbol names"
+                   "required" true}]}]})
+
+(defn handle-prompts-get [params]
+  (let [prompt-name (get params "name")
+        arguments (get params "arguments" {})]
+    (case prompt-name
+      "explore-namespace"
+      {"description" "Explore your current REPL session state"
+       "messages" [{"role" "user"
+                    "content" {"type" "text"
+                               "text" "I want to explore my current REPL session. Let's start by:\n\n1. Check what namespace I'm in (use resource clojure://session/current-ns)\n2. List all variables defined in this namespace (use resource clojure://session/vars)\n3. Show me documentation for any interesting functions you find\n\nThis will help me understand what's available in my current context."}}]}
+
+      "define-and-test"
+      (let [function-name (get arguments "function-name")
+            function-code (get arguments "function-code")]
+        (when-not function-name
+          (throw (Exception. "Missing required argument: function-name")))
+        (when-not function-code
+          (throw (Exception. "Missing required argument: function-code")))
+        {"description" (str "Define and test the function: " function-name)
+         "messages" [{"role" "user"
+                      "content" {"type" "text"
+                                 "text" (str "I want to define and test a new function: " function-name "\n\nFirst, let's define it using the eval-clojure tool:\n" function-code "\n\nAfter defining it, please:\n1. Call it with a simple test case to verify it works\n2. Check the result is what we expect\n3. If there are any errors, help me understand what went wrong\n\nThis ensures the function is properly defined before I use it in my code.")}}]})
+
+      "load-and-explore"
+      (let [file-path (get arguments "file-path")]
+        (when-not file-path
+          (throw (Exception. "Missing required argument: file-path")))
+        {"description" (str "Load and explore the file: " file-path)
+         "messages" [{"role" "user"
+                      "content" {"type" "text"
+                                 "text" (str "I want to load and explore the file: " file-path "\n\nPlease help me:\n1. Load the file using the load-file tool\n2. Determine what namespace it defines (look at the ns declaration)\n3. Switch to that namespace using set-ns\n4. List the public functions defined in that namespace (use resource clojure://session/vars)\n5. Show me documentation for the main functions\n\nThis workflow helps me understand what's in the file before using it.")}}]})
+
+      "debug-error"
+      (let [error-code (get arguments "error-code")]
+        (when-not error-code
+          (throw (Exception. "Missing required argument: error-code")))
+        {"description" "Debug an error systematically"
+         "messages" [{"role" "user"
+                      "content" {"type" "text"
+                                 "text" (str "I'm getting an error with this code: " error-code "\n\nPlease help me debug this by:\n1. Running the code with eval-clojure to capture the full error message\n2. Analyzing the error type and message\n3. If the error mentions specific functions, search for them using clojure://symbols/apropos/{function-name}\n4. Show me documentation for relevant functions using clojure://doc/{symbol}\n5. Suggest what might be wrong and how to fix it\n\nThis systematic approach will help me understand and resolve the error.")}}]})
+
+      "search-and-learn"
+      (let [search-term (get arguments "search-term")]
+        (when-not search-term
+          (throw (Exception. "Missing required argument: search-term")))
+        {"description" (str "Learn about functions related to: " search-term)
+         "messages" [{"role" "user"
+                      "content" {"type" "text"
+                                 "text" (str "I want to learn about functions related to: " search-term "\n\nPlease help me:\n1. Search for symbols matching '" search-term "' using clojure://symbols/apropos/" search-term "\n2. Show me which namespaces these symbols come from\n3. Pick 2-3 of the most commonly used functions\n4. Get their documentation using clojure://doc/{symbol}\n5. If available, show me their source code using clojure://source/{symbol}\n\nThis will help me discover and understand relevant functions in the Clojure standard library.")}}]})
+
+      (throw (Exception. (str "Unknown prompt: " prompt-name))))))
+
 (defn handle-request [request]
   (let [method (get request "method")
         params (get request "params")
@@ -436,6 +521,8 @@
             "tools/call" (handle-tools-call params)
             "resources/list" (handle-resources-list)
             "resources/read" (handle-resources-read params)
+            "prompts/list" (handle-prompts-list)
+            "prompts/get" (handle-prompts-get params)
             (throw (Exception. (str "Unknown method: " method))))]
       
       {"jsonrpc" "2.0"
