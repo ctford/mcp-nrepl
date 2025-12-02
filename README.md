@@ -62,6 +62,7 @@ Create a `.mcp.json` file in your Clojure project root:
 {
   "mcpServers": {
     "mcp-nrepl": {
+      "type": "stdio",
       "command": "bb",
       "args": ["/Users/yourname/.mcp-servers/mcp-nrepl.bb"],
       "_comment": "Replace /Users/yourname with your actual home directory path"
@@ -87,6 +88,7 @@ Add the mcp-nrepl server with embedded server mode (recommended):
 {
   "mcpServers": {
     "mcp-nrepl": {
+      "type": "stdio",
       "command": "bb",
       "args": ["/Users/yourname/.mcp-servers/mcp-nrepl.bb", "--server"],
       "_comment": "Replace /Users/yourname with your actual home directory path"
@@ -95,12 +97,15 @@ Add the mcp-nrepl server with embedded server mode (recommended):
 }
 ```
 
+Note: `"type": "stdio"` is optional (stdio is the default) but included for clarity.
+
 **Alternative - External Server**: If you want to connect to an existing nREPL server with project dependencies loaded, you can specify the port instead:
 
 ```json
 {
   "mcpServers": {
     "mcp-nrepl": {
+      "type": "stdio",
       "command": "bb",
       "args": ["/Users/yourname/.mcp-servers/mcp-nrepl.bb", "--nrepl-port", "1667"]
     }
