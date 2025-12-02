@@ -610,23 +610,15 @@
       (try
         ;; Start embedded nREPL server if --server option is provided
         (when (:server options)
-          ;; Suppress stdout during server startup by temporarily redirecting System.out
-          (let [original-out System/out
-                null-stream (java.io.PrintStream. (java.io.ByteArrayOutputStream.))]
-            (try
-              (System/setOut null-stream)
-              (let [server (nrepl-server/start-server! {:host "localhost" :port 0})
-                    port (.getLocalPort (:socket server))]
-                (System/setOut original-out)
-                (swap! state assoc :embedded-server server :nrepl-port port)
-                ;; Add shutdown hook to stop server on exit
-                (-> (Runtime/getRuntime)
-                    (.addShutdownHook
-                     (Thread. (fn []
-                               (when-let [srv (:embedded-server @state)]
-                                   (nrepl-server/stop-server! srv)))))))
-              (finally
-                (System/setOut original-out)))))
+          (let [server (nrepl-server/start-server! {:host "localhost" :port 0 :quiet true})
+                port (.getLocalPort (:socket server))]
+            (swap! state assoc :embedded-server server :nrepl-port port)
+            ;; Add shutdown hook to stop server on exit
+            (-> (Runtime/getRuntime)
+                (.addShutdownHook
+                 (Thread. (fn []
+                           (when-let [srv (:embedded-server @state)]
+                             (nrepl-server/stop-server! srv))))))))
 
         ;; Set nREPL port from options if provided (overrides embedded server port)
         (when-let [port (:nrepl-port options)]
