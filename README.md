@@ -231,10 +231,10 @@ MCP-nREPL provides 9 tools:
   - Creates namespace if it doesn't exist
 
 **Documentation:**
-- **get-doc** - Get documentation for a Clojure symbol
+- **doc** - Get documentation for a Clojure symbol
   - Parameters: `symbol` (string, required)
   - Returns: Documentation text or "No documentation found"
-- **get-source** - Get source code for a Clojure symbol
+- **source** - Get source code for a Clojure symbol
   - Parameters: `symbol` (string, required)
   - Returns: Source code or "No source found"
 - **apropos** - Search for symbols matching a pattern
@@ -242,11 +242,11 @@ MCP-nREPL provides 9 tools:
   - Returns: List of matching symbols or "No matches found"
 
 **Session Introspection:**
-- **get-session-vars** - List currently defined variables in the session
+- **session-vars** - List currently defined variables in the session
   - Returns: JSON array of variable names
-- **get-session-namespaces** - List all loaded namespaces
+- **session-namespaces** - List all loaded namespaces
   - Returns: JSON array of namespace names
-- **get-current-namespace** - Get the current default namespace
+- **current-namespace** - Get the current default namespace
   - Returns: Current namespace name
 
 ## Limitations

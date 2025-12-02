@@ -280,7 +280,7 @@
       {"namespace" {"type" "string"
                     "description" "The namespace to switch to"}}
       "required" ["namespace"]}}
-    {"name" "get-doc"
+    {"name" "doc"
      "description" "Get documentation for a Clojure symbol"
      "inputSchema"
      {"type" "object"
@@ -288,7 +288,7 @@
       {"symbol" {"type" "string"
                  "description" "The symbol name to get documentation for"}}
       "required" ["symbol"]}}
-    {"name" "get-source"
+    {"name" "source"
      "description" "Get source code for a Clojure symbol"
      "inputSchema"
      {"type" "object"
@@ -304,17 +304,17 @@
       {"query" {"type" "string"
                 "description" "The search pattern to match against symbol names"}}
       "required" ["query"]}}
-    {"name" "get-session-vars"
+    {"name" "session-vars"
      "description" "Get list of currently defined variables in the REPL session"
      "inputSchema"
      {"type" "object"
       "properties" {}}}
-    {"name" "get-session-namespaces"
+    {"name" "session-namespaces"
      "description" "Get list of currently loaded namespaces in the REPL session"
      "inputSchema"
      {"type" "object"
       "properties" {}}}
-    {"name" "get-current-namespace"
+    {"name" "current-namespace"
      "description" "Get the current default namespace in the REPL session"
      "inputSchema"
      {"type" "object"
@@ -362,14 +362,14 @@
             (eval-clojure-code (str "(in-ns '" namespace ")"))
             :default-message (str "Successfully switched to namespace: " namespace))))
 
-      "get-doc"
+      "doc"
       (with-required-param arguments "symbol" "getting documentation"
         (fn [symbol]
           (if-let [doc-content (get-doc symbol)]
             (format-tool-result [] :default-message doc-content)
             (format-tool-result [] :default-message (str "No documentation found for: " symbol)))))
 
-      "get-source"
+      "source"
       (with-required-param arguments "symbol" "getting source code"
         (fn [symbol]
           (if-let [source-content (get-source symbol)]
@@ -383,17 +383,17 @@
             (format-tool-result [] :default-message results)
             (format-tool-result [] :default-message "No matches found"))))
 
-      "get-session-vars"
+      "session-vars"
       (if-let [vars (get-session-vars)]
         (format-tool-result [] :default-message vars)
         (format-tool-result [] :default-message "[]"))
 
-      "get-session-namespaces"
+      "session-namespaces"
       (if-let [namespaces (get-session-namespaces)]
         (format-tool-result [] :default-message namespaces)
         (format-tool-result [] :default-message "[]"))
 
-      "get-current-namespace"
+      "current-namespace"
       (if-let [ns (get-current-namespace)]
         (format-tool-result [] :default-message ns)
         (format-tool-result [] :default-message "user"))

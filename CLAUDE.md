@@ -138,10 +138,10 @@ echo '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "se
 echo '{"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "apropos", "arguments": {"query": "map"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
 
 # Get documentation for a symbol
-echo '{"jsonrpc": "2.0", "id": 6, "method": "tools/call", "params": {"name": "get-doc", "arguments": {"symbol": "map"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 6, "method": "tools/call", "params": {"name": "doc", "arguments": {"symbol": "map"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
 
 # Get current namespace
-echo '{"jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": {"name": "get-current-namespace", "arguments": {}}}' | bb mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": {"name": "current-namespace", "arguments": {}}}' | bb mcp-nrepl.bb --nrepl-port 1667
 ```
 
 ## Tools
@@ -166,11 +166,11 @@ MCP-nREPL provides 9 tools for interacting with the nREPL session:
 
 ### Documentation Tools
 
-- **`get-doc`** - Get documentation for a Clojure symbol
+- **`doc`** - Get documentation for a Clojure symbol
   - Parameters: `symbol` (string) - The symbol name to get documentation for
   - Returns: Documentation text or "No documentation found" message
 
-- **`get-source`** - Get source code for a Clojure symbol
+- **`source`** - Get source code for a Clojure symbol
   - Parameters: `symbol` (string) - The symbol name to get source code for
   - Returns: Source code or "No source found" message
 
@@ -180,13 +180,13 @@ MCP-nREPL provides 9 tools for interacting with the nREPL session:
 
 ### Session Introspection Tools
 
-- **`get-session-vars`** - Get list of currently defined variables in the REPL session
+- **`session-vars`** - Get list of currently defined variables in the REPL session
   - Returns: JSON array of variable names
 
-- **`get-session-namespaces`** - Get list of currently loaded namespaces in the REPL session
+- **`session-namespaces`** - Get list of currently loaded namespaces in the REPL session
   - Returns: JSON array of namespace names
 
-- **`get-current-namespace`** - Get the current default namespace in the REPL session
+- **`current-namespace`** - Get the current default namespace in the REPL session
   - Returns: Current namespace name
 
 ## Project Structure

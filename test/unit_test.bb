@@ -69,12 +69,12 @@
       (is (some #(= "eval-clojure" (get % "name")) tools))
       (is (some #(= "load-file" (get % "name")) tools))
       (is (some #(= "set-ns" (get % "name")) tools))
-      (is (some #(= "get-doc" (get % "name")) tools))
-      (is (some #(= "get-source" (get % "name")) tools))
+      (is (some #(= "doc" (get % "name")) tools))
+      (is (some #(= "source" (get % "name")) tools))
       (is (some #(= "apropos" (get % "name")) tools))
-      (is (some #(= "get-session-vars" (get % "name")) tools))
-      (is (some #(= "get-session-namespaces" (get % "name")) tools))
-      (is (some #(= "get-current-namespace" (get % "name")) tools)))))
+      (is (some #(= "session-vars" (get % "name")) tools))
+      (is (some #(= "session-namespaces" (get % "name")) tools))
+      (is (some #(= "current-namespace" (get % "name")) tools)))))
 
 ;; Test resources list is now empty (all migrated to tools)
 (deftest resources-list-is-empty

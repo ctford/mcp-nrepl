@@ -52,35 +52,35 @@
   {"jsonrpc" "2.0"
    "id" id
    "method" "tools/call"
-   "params" {"name" "get-doc"
+   "params" {"name" "doc"
              "arguments" {"symbol" symbol}}})
 
 (defn mcp-get-source [id symbol]
   {"jsonrpc" "2.0"
    "id" id
    "method" "tools/call"
-   "params" {"name" "get-source"
+   "params" {"name" "source"
              "arguments" {"symbol" symbol}}})
 
 (defn mcp-get-session-vars [id]
   {"jsonrpc" "2.0"
    "id" id
    "method" "tools/call"
-   "params" {"name" "get-session-vars"
+   "params" {"name" "session-vars"
              "arguments" {}}})
 
 (defn mcp-get-session-namespaces [id]
   {"jsonrpc" "2.0"
    "id" id
    "method" "tools/call"
-   "params" {"name" "get-session-namespaces"
+   "params" {"name" "session-namespaces"
              "arguments" {}}})
 
 (defn mcp-get-current-namespace [id]
   {"jsonrpc" "2.0"
    "id" id
    "method" "tools/call"
-   "params" {"name" "get-current-namespace"
+   "params" {"name" "current-namespace"
              "arguments" {}}})
 
 (defn mcp-prompts-list [id]

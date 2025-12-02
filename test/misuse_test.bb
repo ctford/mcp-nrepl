@@ -37,10 +37,10 @@
   (json/parse-string (make-tool-call-msg id "load-file" {"file-path" file-path})))
 
 (defn mcp-get-doc [id symbol]
-  (json/parse-string (make-tool-call-msg id "get-doc" {"symbol" symbol})))
+  (json/parse-string (make-tool-call-msg id "doc" {"symbol" symbol})))
 
 (defn mcp-get-source [id symbol]
-  (json/parse-string (make-tool-call-msg id "get-source" {"symbol" symbol})))
+  (json/parse-string (make-tool-call-msg id "source" {"symbol" symbol})))
 
 (defn mcp-apropos [id query]
   (json/parse-string (make-tool-call-msg id "apropos" {"query" query})))
@@ -166,13 +166,13 @@
                          {"jsonrpc" "2.0"
                           "id" 2
                           "method" "tools/call"
-                          "params" {"name" "get-doc"
+                          "params" {"name" "doc"
                                     "arguments" {"symbol" ""}}})  ;; Empty symbol
           empty-source-msg (json/generate-string
                             {"jsonrpc" "2.0"
                              "id" 3
                              "method" "tools/call"
-                             "params" {"name" "get-source"
+                             "params" {"name" "source"
                                        "arguments" {"symbol" ""}}})
           empty-apropos-msg (json/generate-string
                              {"jsonrpc" "2.0"
