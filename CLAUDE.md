@@ -135,16 +135,20 @@ echo '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "lo
 echo '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "set-ns", "arguments": {"namespace": "my.namespace"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
 
 # Search for symbols matching a pattern
-echo '{"jsonrpc": "2.0", "id": 5, "method": "resources/read", "params": {"uri": "clojure://symbols/apropos/map"}}' | bb mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "apropos", "arguments": {"query": "map"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
+
+# Get documentation for a symbol
+echo '{"jsonrpc": "2.0", "id": 6, "method": "tools/call", "params": {"name": "get-doc", "arguments": {"symbol": "map"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
 
 # Get current namespace
-echo '{"jsonrpc": "2.0", "id": 6, "method": "resources/read", "params": {"uri": "clojure://session/current-ns"}}' | bb mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": {"name": "get-current-namespace", "arguments": {}}}' | bb mcp-nrepl.bb --nrepl-port 1667
 ```
 
-## Tools and Resources
+## Tools
 
-### Available Tools
-MCP-nREPL provides three tools for interacting with the nREPL session:
+MCP-nREPL provides 9 tools for interacting with the nREPL session:
+
+### Code Execution Tools
 
 - **`eval-clojure`** - Evaluate Clojure code expressions
   - Parameters: `code` (string) - The Clojure code to evaluate
@@ -160,15 +164,30 @@ MCP-nREPL provides three tools for interacting with the nREPL session:
   - Returns: Confirmation of namespace switch
   - Creates namespace if it doesn't exist
 
-### Available Resources
-MCP-nREPL provides several resources for session introspection:
+### Documentation Tools
 
-- **`clojure://session/vars`** - List currently defined variables in the session
-- **`clojure://session/namespaces`** - List all loaded namespaces
-- **`clojure://session/current-ns`** - Get the current default namespace
-- **`clojure://doc/{symbol}`** - Get documentation for a symbol
-- **`clojure://source/{symbol}`** - Get source code for a symbol
-- **`clojure://symbols/apropos/{query}`** - Search for symbols matching a pattern
+- **`get-doc`** - Get documentation for a Clojure symbol
+  - Parameters: `symbol` (string) - The symbol name to get documentation for
+  - Returns: Documentation text or "No documentation found" message
+
+- **`get-source`** - Get source code for a Clojure symbol
+  - Parameters: `symbol` (string) - The symbol name to get source code for
+  - Returns: Source code or "No source found" message
+
+- **`apropos`** - Search for symbols matching a pattern in their name or documentation
+  - Parameters: `query` (string) - The search pattern to match against symbol names
+  - Returns: List of matching symbols or "No matches found" message
+
+### Session Introspection Tools
+
+- **`get-session-vars`** - Get list of currently defined variables in the REPL session
+  - Returns: JSON array of variable names
+
+- **`get-session-namespaces`** - Get list of currently loaded namespaces in the REPL session
+  - Returns: JSON array of namespace names
+
+- **`get-current-namespace`** - Get the current default namespace in the REPL session
+  - Returns: Current namespace name
 
 ## Project Structure
 

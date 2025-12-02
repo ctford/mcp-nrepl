@@ -279,7 +279,46 @@
       "properties"
       {"namespace" {"type" "string"
                     "description" "The namespace to switch to"}}
-      "required" ["namespace"]}}]})
+      "required" ["namespace"]}}
+    {"name" "get-doc"
+     "description" "Get documentation for a Clojure symbol"
+     "inputSchema"
+     {"type" "object"
+      "properties"
+      {"symbol" {"type" "string"
+                 "description" "The symbol name to get documentation for"}}
+      "required" ["symbol"]}}
+    {"name" "get-source"
+     "description" "Get source code for a Clojure symbol"
+     "inputSchema"
+     {"type" "object"
+      "properties"
+      {"symbol" {"type" "string"
+                 "description" "The symbol name to get source code for"}}
+      "required" ["symbol"]}}
+    {"name" "apropos"
+     "description" "Search for symbols matching a pattern in their name or documentation"
+     "inputSchema"
+     {"type" "object"
+      "properties"
+      {"query" {"type" "string"
+                "description" "The search pattern to match against symbol names"}}
+      "required" ["query"]}}
+    {"name" "get-session-vars"
+     "description" "Get list of currently defined variables in the REPL session"
+     "inputSchema"
+     {"type" "object"
+      "properties" {}}}
+    {"name" "get-session-namespaces"
+     "description" "Get list of currently loaded namespaces in the REPL session"
+     "inputSchema"
+     {"type" "object"
+      "properties" {}}}
+    {"name" "get-current-namespace"
+     "description" "Get the current default namespace in the REPL session"
+     "inputSchema"
+     {"type" "object"
+      "properties" {}}}]})
 
 ;; Code generation and resource helpers
 (defn build-load-file-code
@@ -323,103 +362,51 @@
             (eval-clojure-code (str "(in-ns '" namespace ")"))
             :default-message (str "Successfully switched to namespace: " namespace))))
 
+      "get-doc"
+      (with-required-param arguments "symbol" "getting documentation"
+        (fn [symbol]
+          (if-let [doc-content (get-doc symbol)]
+            (format-tool-result [] :default-message doc-content)
+            (format-tool-result [] :default-message (str "No documentation found for: " symbol)))))
+
+      "get-source"
+      (with-required-param arguments "symbol" "getting source code"
+        (fn [symbol]
+          (if-let [source-content (get-source symbol)]
+            (format-tool-result [] :default-message source-content)
+            (format-tool-result [] :default-message (str "No source found for: " symbol)))))
+
+      "apropos"
+      (with-required-param arguments "query" "searching for symbols"
+        (fn [query]
+          (if-let [results (get-apropos-results query)]
+            (format-tool-result [] :default-message results)
+            (format-tool-result [] :default-message "No matches found"))))
+
+      "get-session-vars"
+      (if-let [vars (get-session-vars)]
+        (format-tool-result [] :default-message vars)
+        (format-tool-result [] :default-message "[]"))
+
+      "get-session-namespaces"
+      (if-let [namespaces (get-session-namespaces)]
+        (format-tool-result [] :default-message namespaces)
+        (format-tool-result [] :default-message "[]"))
+
+      "get-current-namespace"
+      (if-let [ns (get-current-namespace)]
+        (format-tool-result [] :default-message ns)
+        (format-tool-result [] :default-message "user"))
+
       (format-tool-error (str "Unknown tool: " tool-name)))))
 
 (defn handle-resources-list []
-  {"resources"
-   [{"uri" "clojure://session/vars"
-     "name" "Session Variables"
-     "description" "Currently defined variables in the REPL session"
-     "mimeType" "application/json"}
-    {"uri" "clojure://session/namespaces"
-     "name" "Session Namespaces"
-     "description" "Currently loaded namespaces in the REPL session"
-     "mimeType" "application/json"}
-    {"uri" "clojure://session/current-ns"
-     "name" "Current Namespace"
-     "description" "The current default namespace in the REPL session"
-     "mimeType" "text/plain"}
-    {"uri" "clojure://doc/{symbol}"
-     "name" "Symbol Documentation"
-     "description" "Get documentation for any Clojure symbol (URI template - replace {symbol} with the symbol name)"
-     "mimeType" "text/plain"}
-    {"uri" "clojure://source/{symbol}"
-     "name" "Symbol Source Code"
-     "description" "Get source code for any Clojure symbol (URI template - replace {symbol} with the symbol name)"
-     "mimeType" "text/clojure"}
-    {"uri" "clojure://symbols/apropos/{query}"
-     "name" "Symbol Search"
-     "description" "Search for symbols matching a pattern in their name or documentation (URI template - replace {query} with the search pattern)"
-     "mimeType" "text/plain"}]})
+  "Returns empty resources list - all functionality migrated to tools"
+  {"resources" []})
 
 (defn handle-resources-read [params]
-  (let [uri (get params "uri")]
-    (cond
-      (str/starts-with? uri DOC-URI-PREFIX)
-      (let [symbol (subs uri (count DOC-URI-PREFIX))]
-        (when (str/blank? symbol)
-          (throw (Exception. "Symbol name cannot be empty")))
-        (if-let [doc-content (get-doc symbol)]
-          {"contents" [{"uri" uri
-                       "mimeType" "text/plain"
-                       "text" doc-content}]}
-          {"contents" [{"uri" uri
-                       "mimeType" "text/plain"
-                       "text" (str "No documentation found for: " symbol)}]}))
-
-      (str/starts-with? uri SOURCE-URI-PREFIX)
-      (let [symbol (subs uri (count SOURCE-URI-PREFIX))]
-        (when (str/blank? symbol)
-          (throw (Exception. "Symbol name cannot be empty")))
-        (if-let [source-content (get-source symbol)]
-          {"contents" [{"uri" uri
-                       "mimeType" "text/clojure"
-                       "text" source-content}]}
-          {"contents" [{"uri" uri
-                       "mimeType" "text/plain"
-                       "text" (str "No source found for: " symbol)}]}))
-
-      (str/starts-with? uri APROPOS-URI-PREFIX)
-      (let [query (subs uri (count APROPOS-URI-PREFIX))]
-        (when (str/blank? query)
-          (throw (Exception. "Search query cannot be empty")))
-        (if-let [results (get-apropos-results query)]
-          {"contents" [{"uri" uri
-                       "mimeType" "text/plain"
-                       "text" results}]}
-          {"contents" [{"uri" uri
-                       "mimeType" "text/plain"
-                       "text" "No matches found"}]}))
-
-      (= uri "clojure://session/vars")
-      (if-let [vars (get-session-vars)]
-        {"contents" [{"uri" uri
-                     "mimeType" "application/json"
-                     "text" vars}]}
-        {"contents" [{"uri" uri
-                     "mimeType" "application/json"
-                     "text" "[]"}]})
-      
-      (= uri "clojure://session/namespaces")
-      (if-let [namespaces (get-session-namespaces)]
-        {"contents" [{"uri" uri
-                     "mimeType" "application/json"
-                     "text" namespaces}]}
-        {"contents" [{"uri" uri
-                     "mimeType" "application/json"
-                     "text" "[]"}]})
-      
-      (= uri "clojure://session/current-ns")
-      (if-let [current-ns (get-current-namespace)]
-        {"contents" [{"uri" uri
-                     "mimeType" "text/plain"
-                     "text" current-ns}]}
-        {"contents" [{"uri" uri
-                     "mimeType" "text/plain"
-                     "text" "user"}]})
-      
-      :else
-      (throw (Exception. (str "Unknown resource URI: " uri))))))
+  "Resources have been migrated to tools - returns error"
+  (throw (Exception. "Resources are no longer supported. Please use tools instead.")))
 
 (defn handle-prompts-list []
   {"prompts"

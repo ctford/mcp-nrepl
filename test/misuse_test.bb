@@ -27,9 +27,6 @@
 (defn mcp-initialize []
   (json/parse-string (make-init-msg 1)))
 
-(defn mcp-resource-read [id uri]
-  (json/parse-string (make-resource-read-msg id uri)))
-
 (defn mcp-eval [id code]
   (json/parse-string (make-tool-call-msg id "eval-clojure" {"code" code})))
 
@@ -38,6 +35,15 @@
 
 (defn mcp-load-file [id file-path]
   (json/parse-string (make-tool-call-msg id "load-file" {"file-path" file-path})))
+
+(defn mcp-get-doc [id symbol]
+  (json/parse-string (make-tool-call-msg id "get-doc" {"symbol" symbol})))
+
+(defn mcp-get-source [id symbol]
+  (json/parse-string (make-tool-call-msg id "get-source" {"symbol" symbol})))
+
+(defn mcp-apropos [id query]
+  (json/parse-string (make-tool-call-msg id "apropos" {"query" query})))
 
 ;; Switch to misuse namespace for isolation from other test suites
 (let [[init set-ns-resp] (run-mcp "7888"
@@ -147,8 +153,8 @@
                     (str/includes? error-text "error"))
                 (str "Error text should indicate problem: " error-text))))))))
 
-(deftest test-empty-symbol-in-resource
-  (testing "Handles empty symbol names in resource URIs"
+(deftest test-empty-symbol-in-tool
+  (testing "Handles empty symbol names in tool parameters"
     (let [port "7888"
           init-msg (json/generate-string
                     {"jsonrpc" "2.0"
@@ -159,30 +165,33 @@
           empty-doc-msg (json/generate-string
                          {"jsonrpc" "2.0"
                           "id" 2
-                          "method" "resources/read"
-                          "params" {"uri" "clojure://doc/"}})  ;; Empty symbol
+                          "method" "tools/call"
+                          "params" {"name" "get-doc"
+                                    "arguments" {"symbol" ""}}})  ;; Empty symbol
           empty-source-msg (json/generate-string
                             {"jsonrpc" "2.0"
                              "id" 3
-                             "method" "resources/read"
-                             "params" {"uri" "clojure://source/"}})
+                             "method" "tools/call"
+                             "params" {"name" "get-source"
+                                       "arguments" {"symbol" ""}}})
           empty-apropos-msg (json/generate-string
                              {"jsonrpc" "2.0"
                               "id" 4
-                              "method" "resources/read"
-                              "params" {"uri" "clojure://symbols/apropos/"}})
+                              "method" "tools/call"
+                              "params" {"name" "apropos"
+                                        "arguments" {"query" ""}}})
           input (str/join "\n" [init-msg empty-doc-msg empty-source-msg empty-apropos-msg])
           result (run-mcp-with-input port input)
           output (:out result)
           lines (str/split-lines output)]
-      (color-print :green "✓ Empty symbol in resource URI test completed")
+      (color-print :green "✓ Empty symbol in tool parameter test completed")
       ;; Should get 4 responses (1 init + 3 errors)
       (is (>= (count lines) 4) "Should get response for each request")
-      ;; Each resource read should return an error
+      ;; Each tool call should return a tool error result (isError: true)
       (doseq [line (drop 1 lines)]  ;; Skip init response
         (let [response (json/parse-string line)]
-          (is (get response "error")
-              "Should return error for empty symbol/query"))))))
+          (is (get-in response ["result" "isError"])
+              "Should return tool error result for empty symbol/query"))))))
 
 (deftest test-missing-code-parameter
   (testing "Handles eval-clojure without code parameter"
@@ -212,8 +221,8 @@
         (is (str/includes? error-text "required")
             "Error should mention required parameter")))))
 
-(deftest test-invalid-resource-uri
-  (testing "Handles invalid resource URIs gracefully"
+(deftest test-invalid-tool-name
+  (testing "Handles invalid tool names gracefully"
     (let [port "7888"
           init-msg (json/generate-string
                     {"jsonrpc" "2.0"
@@ -221,30 +230,32 @@
                      "method" "initialize"
                      "params" {"protocolVersion" "2024-11-05"
                                "capabilities" {}}})
-          invalid-uris ["clojure://invalid/foo"
-                       "clojure://unknown"
-                       "invalid-uri"
-                       "clojure://"]
-          test-case (fn [uri]
+          invalid-tools ["invalid-tool"
+                        "unknown-tool"
+                        "get-invalid"
+                        "bad-tool"]
+          test-case (fn [tool-name]
                      (let [msg (json/generate-string
                                 {"jsonrpc" "2.0"
                                  "id" 2
-                                 "method" "resources/read"
-                                 "params" {"uri" uri}})
+                                 "method" "tools/call"
+                                 "params" {"name" tool-name
+                                           "arguments" {}}})
                            input (str init-msg "\n" msg)
                            result (run-mcp-with-input port input)
                            output (:out result)
                            lines (str/split-lines output)]
                        (when (> (count lines) 1)
                          (json/parse-string (second lines)))))]
-      (color-print :green "✓ Invalid resource URI test completed")
-      (doseq [uri invalid-uris]
-        (let [response (test-case uri)]
+      (color-print :green "✓ Invalid tool name test completed")
+      (doseq [tool-name invalid-tools]
+        (let [response (test-case tool-name)]
           (is (some? response)
-              (str "Should return response for invalid URI: " uri))
+              (str "Should return response for invalid tool: " tool-name))
           (when response
-            (is (get response "error")
-                (str "Should return error for invalid URI: " uri))))))))
+            (is (or (get response "error")
+                   (get-in response ["result" "isError"]))
+                (str "Should return error for invalid tool: " tool-name))))))))
 
 (deftest test-load-nonexistent-file
   (testing "Handles load-file with non-existent file"
@@ -353,57 +364,60 @@
 
 ;; Code Injection Security Tests
 
-(deftest test-code-injection-in-doc-resource
-  (testing "Code injection attempts in doc resource URIs are safely handled"
+(deftest test-code-injection-in-doc-tool
+  (testing "Code injection attempts in doc tool parameters are safely handled"
     (let [port "7888"
           ;; Test just one representative injection case to avoid exhausting nREPL connections
-          injection-uri "clojure://doc/map) (System/exit 0) (identity x"
-          [init-resp read-resp] (run-mcp port
+          injection-symbol "map) (System/exit 0) (identity x"
+          [init-resp call-resp] (run-mcp port
                                          (mcp-initialize)
-                                         (mcp-resource-read 2 injection-uri))
-          has-error (get read-resp "error")
-          result-text (get-in read-resp ["result" "contents" 0 "text"])]
-      (color-print :green "✓ Code injection in doc resource test completed")
+                                         (mcp-get-doc 2 injection-symbol))
+          has-error (or (get call-resp "error")
+                       (get-in call-resp ["result" "isError"]))
+          result-text (get-in call-resp ["result" "content" 0 "text"])]
+      (color-print :green "✓ Code injection in doc tool test completed")
       ;; Safe if: error response OR "No documentation found" message
       (is (or has-error
               (str/includes? (str result-text) "No documentation found")
               (str/includes? (str result-text) "Symbol name cannot be empty"))
-          "Should safely handle code injection attempt in doc resource URI"))))
+          "Should safely handle code injection attempt in doc tool parameter"))))
 
-(deftest test-code-injection-in-source-resource
-  (testing "Code injection attempts in source resource URIs are safely handled"
+(deftest test-code-injection-in-source-tool
+  (testing "Code injection attempts in source tool parameters are safely handled"
     (let [port "7888"
           ;; Test one representative injection case
-          injection-uri "clojure://source/map) (sh \"rm -rf /\") (identity x"
-          [init-resp read-resp] (run-mcp port
+          injection-symbol "map) (sh \"rm -rf /\") (identity x"
+          [init-resp call-resp] (run-mcp port
                                          (mcp-initialize)
-                                         (mcp-resource-read 2 injection-uri))
-          has-error (get read-resp "error")
-          result-text (get-in read-resp ["result" "contents" 0 "text"])]
-      (color-print :green "✓ Code injection in source resource test completed")
+                                         (mcp-get-source 2 injection-symbol))
+          has-error (or (get call-resp "error")
+                       (get-in call-resp ["result" "isError"]))
+          result-text (get-in call-resp ["result" "content" 0 "text"])]
+      (color-print :green "✓ Code injection in source tool test completed")
       ;; Safe if: error response OR "No source found" message
       (is (or has-error
               (str/includes? (str result-text) "No source found")
               (str/includes? (str result-text) "Symbol name cannot be empty"))
-          "Should safely handle code injection attempt in source resource URI"))))
+          "Should safely handle code injection attempt in source tool parameter"))))
 
-(deftest test-code-injection-in-apropos-resource
-  (testing "Code injection attempts in apropos resource URIs are safely handled"
+(deftest test-code-injection-in-apropos-tool
+  (testing "Code injection attempts in apropos tool parameters are safely handled"
     (let [port "7888"
           ;; Test one representative injection case
-          injection-uri "clojure://symbols/apropos/map\") (System/exit 0) (str \""
-          [init-resp read-resp] (run-mcp port
+          injection-query "map\") (System/exit 0) (str \""
+          [init-resp call-resp] (run-mcp port
                                          (mcp-initialize)
-                                         (mcp-resource-read 2 injection-uri))
-          has-error (get read-resp "error")
-          result-text (get-in read-resp ["result" "contents" 0 "text"])]
-      (color-print :green "✓ Code injection in apropos resource test completed")
+                                         (mcp-apropos 2 injection-query))
+          has-error (or (get call-resp "error")
+                       (get-in call-resp ["result" "isError"]))
+          result-text (get-in call-resp ["result" "content" 0 "text"])]
+      (color-print :green "✓ Code injection in apropos tool test completed")
       ;; Safe if: error response OR search results (no "pwned" or code execution)
       (is (or has-error
               (and result-text (not (str/includes? (str result-text) "pwned")))
               (str/includes? (str result-text) "No matches found")
               (str/includes? (str result-text) "Search query cannot be empty"))
-          "Should safely handle code injection attempt in apropos resource URI"))))
+          "Should safely handle code injection attempt in apropos tool parameter"))))
 
 (deftest test-code-injection-in-set-ns-tool
   (testing "Code injection attempts in set-ns tool are safely handled"

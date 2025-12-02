@@ -44,14 +44,44 @@
 (defn mcp-apropos [id query]
   {"jsonrpc" "2.0"
    "id" id
-   "method" "resources/read"
-   "params" {"uri" (str "clojure://symbols/apropos/" query)}})
+   "method" "tools/call"
+   "params" {"name" "apropos"
+             "arguments" {"query" query}}})
 
-(defn mcp-resource-read [id uri]
+(defn mcp-get-doc [id symbol]
   {"jsonrpc" "2.0"
    "id" id
-   "method" "resources/read"
-   "params" {"uri" uri}})
+   "method" "tools/call"
+   "params" {"name" "get-doc"
+             "arguments" {"symbol" symbol}}})
+
+(defn mcp-get-source [id symbol]
+  {"jsonrpc" "2.0"
+   "id" id
+   "method" "tools/call"
+   "params" {"name" "get-source"
+             "arguments" {"symbol" symbol}}})
+
+(defn mcp-get-session-vars [id]
+  {"jsonrpc" "2.0"
+   "id" id
+   "method" "tools/call"
+   "params" {"name" "get-session-vars"
+             "arguments" {}}})
+
+(defn mcp-get-session-namespaces [id]
+  {"jsonrpc" "2.0"
+   "id" id
+   "method" "tools/call"
+   "params" {"name" "get-session-namespaces"
+             "arguments" {}}})
+
+(defn mcp-get-current-namespace [id]
+  {"jsonrpc" "2.0"
+   "id" id
+   "method" "tools/call"
+   "params" {"name" "get-current-namespace"
+             "arguments" {}}})
 
 (defn mcp-prompts-list [id]
   {"jsonrpc" "2.0"
@@ -78,9 +108,6 @@
 
 (defn get-result-text [response]
   (get-in response ["result" "content" 0 "text"]))
-
-(defn get-resource-text [response]
-  (get-in response ["result" "contents" 0 "text"]))
 
 ;; Set up nREPL once before all tests
 (def nrepl-port
@@ -142,8 +169,8 @@
           [init set-ns-resp get-ns-resp] (run-mcp port
                                                    (mcp-initialize)
                                                    (mcp-set-ns 14 "clojure.set")
-                                                   (mcp-resource-read 15 "clojure://session/current-ns"))
-          current-ns (get-resource-text get-ns-resp)]
+                                                   (mcp-get-current-namespace 15))
+          current-ns (get-result-text get-ns-resp)]
       (color-print :green "✓ Namespace switch successful: " current-ns)
       (is (str/includes? current-ns "clojure.set")))))
 
@@ -153,7 +180,7 @@
           [init apropos-resp] (run-mcp port
                                        (mcp-initialize)
                                        (mcp-apropos 16 "map"))
-          result (get-resource-text apropos-resp)]
+          result (get-result-text apropos-resp)]
       (color-print :green "✓ Apropos search successful")
       (is (str/includes? result "clojure.core/map")))))
 
@@ -163,8 +190,8 @@
           [init define vars-resp] (run-mcp port
                                            (mcp-initialize)
                                            (mcp-eval 6 "(defn test-fn [] 42)")
-                                           (mcp-resource-read 7 "clojure://session/vars"))
-          vars (get-resource-text vars-resp)]
+                                           (mcp-get-session-vars 7))
+          vars (get-result-text vars-resp)]
       (color-print :green "✓ Session vars listing successful")
       (is (str/includes? vars "test-fn")))))
 
@@ -173,30 +200,30 @@
     (let [port nrepl-port
           [init ns-resp] (run-mcp port
                                   (mcp-initialize)
-                                  (mcp-resource-read 10 "clojure://session/namespaces"))
-          namespaces (get-resource-text ns-resp)]
+                                  (mcp-get-session-namespaces 10))
+          namespaces (get-result-text ns-resp)]
       (color-print :green "✓ Session namespaces listing successful")
       (is (str/includes? namespaces "user")))))
 
-(deftest test-doc-resource
-  (testing "Doc resource retrieval"
+(deftest test-doc-tool
+  (testing "Doc tool retrieval"
     (let [port nrepl-port
           [init doc-resp] (run-mcp port
                                    (mcp-initialize)
-                                   (mcp-resource-read 11 "clojure://doc/map"))
-          doc-text (get-resource-text doc-resp)]
-      (color-print :green "✓ Doc resource retrieval successful")
-      (is (some? doc-text) "Doc resource should return content"))))
+                                   (mcp-get-doc 11 "map"))
+          doc-text (get-result-text doc-resp)]
+      (color-print :green "✓ Doc tool retrieval successful")
+      (is (some? doc-text) "Doc tool should return content"))))
 
-(deftest test-source-resource
-  (testing "Source resource retrieval"
+(deftest test-source-tool
+  (testing "Source tool retrieval"
     (let [port nrepl-port
           [init source-resp] (run-mcp port
                                       (mcp-initialize)
-                                      (mcp-resource-read 12 "clojure://source/map"))
-          source-text (get-resource-text source-resp)]
-      (color-print :green "✓ Source resource retrieval successful")
-      (is (some? source-text) "Source resource should return content"))))
+                                      (mcp-get-source 12 "map"))
+          source-text (get-result-text source-resp)]
+      (color-print :green "✓ Source tool retrieval successful")
+      (is (some? source-text) "Source tool should return content"))))
 
 (deftest test-connectionless-eval-mode
   (testing "Connectionless eval mode works"

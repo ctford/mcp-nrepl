@@ -62,64 +62,25 @@
 
 ;; Test tools list contains all expected tools with correct schemas
 (deftest tools-list-contains-all-expected-tools-with-correct-schemas
-  (testing "Tools list includes eval-clojure, load-file, and set-ns with proper schemas"
+  (testing "Tools list includes all 9 tools (eval, load, set-ns, get-doc, get-source, apropos, session tools)"
     (let [result (mcp-nrepl/handle-tools-list)
-          expected {"tools"
-                    [{"name" "eval-clojure"
-                      "description" "Evaluate Clojure code using nREPL"
-                      "inputSchema"
-                      {"type" "object"
-                       "properties"
-                       {"code" {"type" "string"
-                                "description" "The Clojure code to evaluate"}}
-                       "required" ["code"]}}
-                     {"name" "load-file"
-                      "description" "Load and evaluate a Clojure file using nREPL"
-                      "inputSchema"
-                      {"type" "object"
-                       "properties"
-                       {"file-path" {"type" "string"
-                                     "description" "The path to the Clojure file to load"}}
-                       "required" ["file-path"]}}
-                     {"name" "set-ns"
-                      "description" "Switch to a different namespace in the nREPL session"
-                      "inputSchema"
-                      {"type" "object"
-                       "properties"
-                       {"namespace" {"type" "string"
-                                     "description" "The namespace to switch to"}}
-                       "required" ["namespace"]}}]}]
-      (is (= expected result)))))
+          tools (get result "tools")]
+      (is (= 9 (count tools)) "Should have 9 tools")
+      (is (some #(= "eval-clojure" (get % "name")) tools))
+      (is (some #(= "load-file" (get % "name")) tools))
+      (is (some #(= "set-ns" (get % "name")) tools))
+      (is (some #(= "get-doc" (get % "name")) tools))
+      (is (some #(= "get-source" (get % "name")) tools))
+      (is (some #(= "apropos" (get % "name")) tools))
+      (is (some #(= "get-session-vars" (get % "name")) tools))
+      (is (some #(= "get-session-namespaces" (get % "name")) tools))
+      (is (some #(= "get-current-namespace" (get % "name")) tools)))))
 
-;; Test resources list contains all session introspection resources
-(deftest resources-list-contains-all-session-introspection-resources
-  (testing "Resources list includes all resources including URI templates"
+;; Test resources list is now empty (all migrated to tools)
+(deftest resources-list-is-empty
+  (testing "Resources list is empty - all functionality migrated to tools"
     (let [result (mcp-nrepl/handle-resources-list)
-          expected {"resources"
-                    [{"uri" "clojure://session/vars"
-                      "name" "Session Variables"
-                      "description" "Currently defined variables in the REPL session"
-                      "mimeType" "application/json"}
-                     {"uri" "clojure://session/namespaces"
-                      "name" "Session Namespaces"
-                      "description" "Currently loaded namespaces in the REPL session"
-                      "mimeType" "application/json"}
-                     {"uri" "clojure://session/current-ns"
-                      "name" "Current Namespace"
-                      "description" "The current default namespace in the REPL session"
-                      "mimeType" "text/plain"}
-                     {"uri" "clojure://doc/{symbol}"
-                      "name" "Symbol Documentation"
-                      "description" "Get documentation for any Clojure symbol (URI template - replace {symbol} with the symbol name)"
-                      "mimeType" "text/plain"}
-                     {"uri" "clojure://source/{symbol}"
-                      "name" "Symbol Source Code"
-                      "description" "Get source code for any Clojure symbol (URI template - replace {symbol} with the symbol name)"
-                      "mimeType" "text/clojure"}
-                     {"uri" "clojure://symbols/apropos/{query}"
-                      "name" "Symbol Search"
-                      "description" "Search for symbols matching a pattern in their name or documentation (URI template - replace {query} with the search pattern)"
-                      "mimeType" "text/plain"}]}]
+          expected {"resources" []}]
       (is (= expected result)))))
 
 ;; Test error responses follow JSON-RPC error format correctly

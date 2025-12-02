@@ -215,33 +215,39 @@ All test suites are written in Babashka for consistency and maintainability.
 
 ### Available Tools
 
-**eval-clojure** - Evaluate Clojure code expressions
-- Parameters: `code` (string, required)
-- Returns: Evaluation result, output, and any errors
+MCP-nREPL provides 9 tools:
 
-**load-file** - Load and evaluate a Clojure file
-- Parameters: `file-path` (string, required)
-- Returns: Success message or evaluation output
-- Validates file existence before loading
+**Code Execution:**
+- **eval-clojure** - Evaluate Clojure code expressions
+  - Parameters: `code` (string, required)
+  - Returns: Evaluation result, output, and any errors
+- **load-file** - Load and evaluate a Clojure file
+  - Parameters: `file-path` (string, required)
+  - Returns: Success message or evaluation output
+  - Validates file existence before loading
+- **set-ns** - Switch to a different namespace
+  - Parameters: `namespace` (string, required)
+  - Returns: Confirmation of namespace switch
+  - Creates namespace if it doesn't exist
 
-**set-ns** - Switch to a different namespace
-- Parameters: `namespace` (string, required)
-- Returns: Confirmation of namespace switch
-- Creates namespace if it doesn't exist
+**Documentation:**
+- **get-doc** - Get documentation for a Clojure symbol
+  - Parameters: `symbol` (string, required)
+  - Returns: Documentation text or "No documentation found"
+- **get-source** - Get source code for a Clojure symbol
+  - Parameters: `symbol` (string, required)
+  - Returns: Source code or "No source found"
+- **apropos** - Search for symbols matching a pattern
+  - Parameters: `query` (string, required)
+  - Returns: List of matching symbols or "No matches found"
 
-### Available Resources
-
-**clojure://session/vars** - List currently defined variables in the session
-
-**clojure://session/namespaces** - List all loaded namespaces
-
-**clojure://session/current-ns** - Get the current default namespace
-
-**clojure://doc/{symbol}** - Get documentation for a symbol (e.g., `clojure://doc/map`)
-
-**clojure://source/{symbol}** - Get source code for a symbol (e.g., `clojure://source/map`)
-
-**clojure://symbols/apropos/{query}** - Search for symbols matching a pattern (e.g., `clojure://symbols/apropos/map`)
+**Session Introspection:**
+- **get-session-vars** - List currently defined variables in the session
+  - Returns: JSON array of variable names
+- **get-session-namespaces** - List all loaded namespaces
+  - Returns: JSON array of namespace names
+- **get-current-namespace** - Get the current default namespace
+  - Returns: Current namespace name
 
 ## Limitations
 
