@@ -523,13 +523,15 @@
             "message" error-msg}})
 
 (defn process-message [line]
-  (try
-    (let [request (json/parse-string line)]
-      (if (get request "method")
-        (handle-request request)
-        (throw (Exception. "Invalid request: missing method"))))
-    (catch Exception e
-      (handle-error nil (.getMessage e)))))
+  (let [id (try (-> line json/parse-string (get "id" 0))
+               (catch Exception _ 0))]
+    (try
+      (let [request (json/parse-string line)]
+        (if (get request "method")
+          (handle-request request)
+          (throw (Exception. "Invalid request: missing method"))))
+      (catch Exception e
+        (handle-error id (.getMessage e))))))
 
 (def cli-options
   [["-p" "--nrepl-port PORT" "Connect to nREPL server on specified port"
@@ -621,8 +623,10 @@
           (loop []
             (when-let [line (read-line)]
               (let [response (if (> (count (.getBytes line "UTF-8")) MAX-REQUEST-SIZE)
-                               (handle-error nil (str "Request too large. Maximum size: 64 KB. "
-                                                    "For large code, use the load-file tool instead."))
+                               (let [id (try (-> line json/parse-string (get "id" 0))
+                                            (catch Exception _ 0))]
+                                 (handle-error id (str "Request too large. Maximum size: 64 KB. "
+                                                      "For large code, use the load-file tool instead.")))
                                (process-message line))]
                 (println (json/generate-string response))
                 (flush))
