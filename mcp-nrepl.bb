@@ -210,30 +210,18 @@
        (map decode-bytes)))
 
 (defn format-tool-result
-  "Format nREPL responses into a tool result with structured output.
-   Returns separate content blocks for stdout, stderr, and return values."
+  "Format nREPL responses into a tool result with named fields.
+   Returns three fields: output (stdout), error (stderr), and value (return value)."
   [responses & {:keys [default-message]}]
   (let [values (extract-field-from-responses responses "value")
         output (str/join "\n" (extract-field-from-responses responses "out"))
         errors (str/join "\n" (extract-field-from-responses responses "err"))
-        content-blocks (vec (concat
-                             ;; Add stdout block if present
-                             (when-not (str/blank? output)
-                               [{"type" "text"
-                                 "text" output}])
-                             ;; Add stderr block if present
-                             (when-not (str/blank? errors)
-                               [{"type" "text"
-                                 "text" errors}])
-                             ;; Add value blocks
-                             (map (fn [value]
-                                    {"type" "text"
-                                     "text" value})
-                                  values)))]
-    {"content" (if (empty? content-blocks)
-                 [{"type" "text"
-                   "text" (or default-message "nil")}]
-                 content-blocks)}))
+        value-str (str/join "\n" values)]
+    {"output" (if (str/blank? output) "" output)
+     "error" (if (str/blank? errors) "" errors)
+     "value" (if (str/blank? value-str)
+               (or default-message "nil")
+               value-str)}))
 
 (defn format-tool-error
   "Format an error message as a tool response"
@@ -345,9 +333,7 @@
   "Search for symbols matching a pattern"
   (some-> (eval-nrepl-code (build-apropos-code query))
           format-tool-result
-          (get "content")
-          (->> (map #(get % "text"))
-               (str/join "\n"))))
+          (get "value")))
 
 (defn handle-tools-call [params]
   (let [tool-name (get params "name")
@@ -594,8 +580,8 @@
   (try
     (let [responses (eval-clojure-code code)
           result (format-tool-result responses)
-          text (get-in result ["content" 0 "text"])]
-      (println text)
+          value (get result "value")]
+      (println value)
       (System/exit 0))
     (catch Exception e
       (binding [*out* *err*]

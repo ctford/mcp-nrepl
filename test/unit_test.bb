@@ -231,31 +231,63 @@
 
 ;; Test helper function: format-tool-result
 (deftest format-tool-result-formats-responses-correctly
-  (testing "Formats responses with values, output, and errors as separate blocks"
+  (testing "Formats responses with values, output, and errors as named fields"
     (let [responses [{"value" (.getBytes "42" "UTF-8")}
                      {"out" (.getBytes "debug output" "UTF-8")}
                      {"err" (.getBytes "warning" "UTF-8")}]
           result (mcp-nrepl/format-tool-result responses)
-          expected {"content" [{"type" "text"
-                               "text" "debug output"}
-                              {"type" "text"
-                               "text" "warning"}
-                              {"type" "text"
-                               "text" "42"}]}]
+          expected {"output" "debug output"
+                    "error" "warning"
+                    "value" "42"}]
       (is (= expected result))))
 
-  (testing "Uses default message when result is empty"
+  (testing "Uses default message in value field when result is empty"
     (let [responses []
           result (mcp-nrepl/format-tool-result responses :default-message "Success!")
-          expected {"content" [{"type" "text"
-                               "text" "Success!"}]}]
+          expected {"output" ""
+                    "error" ""
+                    "value" "Success!"}]
       (is (= expected result))))
 
-  (testing "Returns 'nil' when no default message and empty responses"
+  (testing "Returns 'nil' in value field when no default message and empty responses"
     (let [responses []
           result (mcp-nrepl/format-tool-result responses)
-          expected {"content" [{"type" "text"
-                               "text" "nil"}]}]
+          expected {"output" ""
+                    "error" ""
+                    "value" "nil"}]
+      (is (= expected result))))
+
+  (testing "Empty output and error fields return empty strings"
+    (let [responses [{"value" (.getBytes "42" "UTF-8")}]
+          result (mcp-nrepl/format-tool-result responses)]
+      (is (= "" (get result "output")))
+      (is (= "" (get result "error")))
+      (is (= "42" (get result "value")))))
+
+  (testing "Multiple values are joined with newlines"
+    (let [responses [{"value" (.getBytes "1" "UTF-8")}
+                     {"value" (.getBytes "2" "UTF-8")}
+                     {"value" (.getBytes "3" "UTF-8")}]
+          result (mcp-nrepl/format-tool-result responses)
+          expected {"output" ""
+                    "error" ""
+                    "value" "1\n2\n3"}]
+      (is (= expected result))))
+
+  (testing "Output-only response"
+    (let [responses [{"out" (.getBytes "debug output" "UTF-8")}]
+          result (mcp-nrepl/format-tool-result responses)
+          expected {"output" "debug output"
+                    "error" ""
+                    "value" "nil"}]
+      (is (= expected result))))
+
+  (testing "Error-only response"
+    (let [responses [{"err" (.getBytes "error message" "UTF-8")}]
+          result (mcp-nrepl/format-tool-result responses)
+          expected {"output" ""
+                    "error" "error message"
+                    "value" "nil"}]
       (is (= expected result)))))
 
 ;; Test helper function: format-tool-error

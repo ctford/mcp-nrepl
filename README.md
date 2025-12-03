@@ -249,6 +249,24 @@ MCP-nREPL provides 9 tools:
 - **current-namespace** - Get the current default namespace
   - Returns: Current namespace name
 
+### Tool Response Format
+
+All tools return responses with three named fields:
+- **output**: Standard output (stdout) from code execution
+- **error**: Error output (stderr) from code execution
+- **value**: The return value of the evaluation
+
+Example response:
+```json
+{
+  "output": "debug message\n",
+  "error": "",
+  "value": "42"
+}
+```
+
+Empty fields return empty strings (""), not null. Multiple return values are joined with newlines.
+
 ## Limitations
 
 - **Single Session**: No support for parallel nREPL sessions

@@ -111,11 +111,23 @@
          (mapv json/parse-string))))
 
 (defn get-result-text [response]
-  "Extract text from all content blocks, joining with newlines for structured output"
-  (let [content (get-in response ["result" "content"])]
-    (->> content
-         (map #(get % "text"))
+  "Extract text from output, error, and value fields, joining with newlines"
+  (let [result (get response "result")
+        parts [(get result "output")
+               (get result "error")
+               (get result "value")]]
+    (->> parts
+         (filter #(not (str/blank? %)))
          (str/join "\n"))))
+
+(defn get-output [response]
+  (get-in response ["result" "output"]))
+
+(defn get-error [response]
+  (get-in response ["result" "error"]))
+
+(defn get-value [response]
+  (get-in response ["result" "value"]))
 
 ;; Switch to e2e-internal namespace for isolation from other test suites
 (let [[init set-ns-resp] (run-mcp (mcp-initialize)
@@ -295,6 +307,24 @@
       (color-print :green "✓ define-and-test prompt interpolated arguments")
       (is (str/includes? message-text "square"))
       (is (str/includes? message-text "(defn square [x] (* x x))")))))
+
+(deftest test-named-field-extraction
+  (testing "Can extract individual fields from mixed output"
+    (let [[init result] (run-mcp
+                          (mcp-initialize)
+                          (mcp-eval 30 "(do (println \"debug\") (binding [*out* *err*] (println \"warning\")) 42)"))]
+      (color-print :green "✓ Named field extraction test passed")
+      (is (= "debug\n" (get-output result)))
+      (is (= "warning\n" (get-error result)))
+      (is (= "42" (get-value result)))))
+
+  (testing "All three fields are present in response"
+    (let [[init result] (run-mcp
+                          (mcp-initialize)
+                          (mcp-eval 31 "(+ 1 2 3)"))]
+      (is (contains? (get result "result") "output"))
+      (is (contains? (get result "result") "error"))
+      (is (contains? (get result "result") "value")))))
 
 ;; Main test runner
 (defn run-all-tests []

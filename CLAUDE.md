@@ -189,6 +189,28 @@ MCP-nREPL provides 9 tools for interacting with the nREPL session:
 - **`current-namespace`** - Get the current default namespace in the REPL session
   - Returns: Current namespace name
 
+### Tool Response Format
+
+All tools return responses with three named fields:
+- **output**: Standard output (stdout) from code execution
+- **error**: Error output (stderr) from code execution
+- **value**: The return value of the evaluation
+
+Example response:
+```json
+{
+  "output": "debug message\n",
+  "error": "",
+  "value": "42"
+}
+```
+
+**Key behaviors:**
+- Empty fields return empty strings (""), not null
+- Multiple return values are joined with newlines in the "value" field
+- The test helper `get-result-text` joins all three fields for backward compatibility
+- Individual field helpers: `get-output`, `get-error`, `get-value`
+
 ## Project Structure
 
 - `mcp-nrepl.bb` - Main MCP-nREPL bridge implementation
