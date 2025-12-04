@@ -180,7 +180,9 @@ MCP-nREPL provides 9 tools for interacting with the nREPL session:
 
 ### Session Introspection Tools
 
-- **`vars`** - Get list of currently defined variables in the REPL session
+- **`vars`** - Get list of currently defined variables in a namespace
+  - Parameters: `namespace` (string, optional) - The namespace to list vars from
+  - Defaults to current namespace if not specified
   - Returns: JSON array of variable names
 
 - **`loaded-namespaces`** - Get list of currently loaded namespaces in the REPL session

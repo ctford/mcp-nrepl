@@ -62,12 +62,17 @@
    "params" {"name" "source"
              "arguments" {"symbol" symbol}}})
 
-(defn mcp-get-vars [id]
-  {"jsonrpc" "2.0"
-   "id" id
-   "method" "tools/call"
-   "params" {"name" "vars"
-             "arguments" {}}})
+(defn mcp-get-vars
+  ([id]
+   (mcp-get-vars id nil))
+  ([id namespace]
+   {"jsonrpc" "2.0"
+    "id" id
+    "method" "tools/call"
+    "params" {"name" "vars"
+              "arguments" (if namespace
+                            {"namespace" namespace}
+                            {})}}))
 
 (defn mcp-get-loaded-namespaces [id]
   {"jsonrpc" "2.0"
@@ -206,6 +211,16 @@
           vars (get-result-text vars-resp)]
       (color-print :green "✓ Vars listing successful")
       (is (str/includes? vars "test-fn")))))
+
+(deftest test-vars-with-namespace
+  (testing "Can list variables from specific namespace"
+    (let [[init vars-resp] (run-mcp
+                             (mcp-initialize)
+                             (mcp-get-vars 8 "clojure.set"))
+          vars (get-result-text vars-resp)]
+      (color-print :green "✓ Vars with namespace argument successful")
+      (is (str/includes? vars "union"))
+      (is (str/includes? vars "difference")))))
 
 (deftest test-loaded-namespaces
   (testing "Can list loaded namespaces"

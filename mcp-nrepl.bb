@@ -184,10 +184,16 @@
     (some-> (eval-nrepl-code (str "(clojure.repl/source " symbol-str ")"))
             extract-nrepl-output)))
 
-(defn get-vars []
-  "Get list of public variables in current namespace"
-  (some-> (eval-nrepl-code "(keys (ns-publics *ns*))")
-          extract-nrepl-value))
+(defn get-vars
+  "Get list of public variables in a namespace (defaults to current namespace)"
+  ([]
+   (get-vars nil))
+  ([namespace]
+   (let [ns-code (if namespace
+                   (str "(find-ns '" namespace ")")
+                   "*ns*")]
+     (some-> (eval-nrepl-code (str "(when-let [ns " ns-code "] (keys (ns-publics ns)))"))
+             extract-nrepl-value))))
 
 (defn get-loaded-namespaces []
   "Get list of all loaded namespaces"
@@ -305,10 +311,12 @@
                 "description" "The search pattern to match against symbol names"}}
       "required" ["query"]}}
     {"name" "vars"
-     "description" "Get list of currently defined variables in the REPL session"
+     "description" "Get list of currently defined variables in a namespace (defaults to current namespace)"
      "inputSchema"
      {"type" "object"
-      "properties" {}}}
+      "properties"
+      {"namespace" {"type" "string"
+                    "description" "The namespace to list vars from (optional, defaults to current namespace)"}}}}
     {"name" "loaded-namespaces"
      "description" "Get list of currently loaded namespaces in the REPL session"
      "inputSchema"
@@ -410,9 +418,10 @@
             (format-tool-result [] :default-message "No matches found"))))
 
       "vars"
-      (if-let [vars (get-vars)]
-        (format-tool-result [] :default-message vars)
-        (format-tool-result [] :default-message "[]"))
+      (let [namespace (get arguments "namespace")]
+        (if-let [vars (get-vars namespace)]
+          (format-tool-result [] :default-message vars)
+          (format-tool-result [] :default-message "[]")))
 
       "loaded-namespaces"
       (if-let [namespaces (get-loaded-namespaces)]
