@@ -62,7 +62,7 @@
 
 ;; Test tools list contains all expected tools with correct schemas
 (deftest tools-list-contains-all-expected-tools-with-correct-schemas
-  (testing "Tools list includes all 11 tools (eval, load, set-ns, get-doc, get-source, apropos, session tools, macroexpand)"
+  (testing "Tools list includes all 11 tools (eval, load, set-namespace, get-doc, get-source, apropos, session tools, macroexpand)"
     (let [result (mcp-nrepl/handle-tools-list)
           tools (get result "tools")]
       (is (= 11 (count tools)) "Should have 11 tools")
