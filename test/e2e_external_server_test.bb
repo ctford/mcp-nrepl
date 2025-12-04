@@ -312,7 +312,7 @@
       (is (= 1 (count messages)))
       (is (= "user" (get-in messages [0 "role"])))
       (is (str/includes? (get-in messages [0 "content" "text"])
-                         "clojure://session/current-ns")))))
+                         "current-namespace tool")))))
 
 (deftest test-prompts-get-with-arguments
   (testing "Can get prompts with arguments"

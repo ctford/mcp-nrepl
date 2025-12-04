@@ -496,7 +496,7 @@
       {"description" "Explore your current REPL session state"
        "messages" [{"role" "user"
                     "content" {"type" "text"
-                               "text" "I want to explore my current REPL session. Let's start by:\n\n1. Check what namespace I'm in (use resource clojure://session/current-ns)\n2. List all variables defined in this namespace (use resource clojure://session/vars)\n3. Show me documentation for any interesting functions you find\n\nThis will help me understand what's available in my current context."}}]}
+                               "text" "I want to explore my current REPL session. Let's start by:\n\n1. Check what namespace I'm in (use the current-namespace tool)\n2. List all variables defined in this namespace (use the vars tool)\n3. Show me documentation for any interesting functions you find\n\nThis will help me understand what's available in my current context."}}]}
 
       "define-and-test"
       (let [function-name (get arguments "function-name")
@@ -517,7 +517,7 @@
         {"description" (str "Load and explore the file: " file-path)
          "messages" [{"role" "user"
                       "content" {"type" "text"
-                                 "text" (str "I want to load and explore the file: " file-path "\n\nPlease help me:\n1. Load the file using the load-file tool\n2. Determine what namespace it defines (look at the ns declaration)\n3. Switch to that namespace using set-namespace\n4. List the public functions defined in that namespace (use resource clojure://session/vars)\n5. Show me documentation for the main functions\n\nThis workflow helps me understand what's in the file before using it.")}}]})
+                                 "text" (str "I want to load and explore the file: " file-path "\n\nPlease help me:\n1. Load the file using the load-file tool\n2. Determine what namespace it defines (look at the ns declaration)\n3. Switch to that namespace using set-namespace\n4. List the public functions defined in that namespace (use the vars tool)\n5. Show me documentation for the main functions\n\nThis workflow helps me understand what's in the file before using it.")}}]})
 
       "debug-error"
       (let [error-code (get arguments "error-code")]

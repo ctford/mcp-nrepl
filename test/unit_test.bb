@@ -343,7 +343,7 @@
       (is (= "text" (get-in messages [0 "content" "type"])))
       (is (string? (get-in messages [0 "content" "text"])))
       (is (str/includes? (get-in messages [0 "content" "text"])
-                         "clojure://session/current-ns"))))
+                         "current-namespace tool"))))
 
   (testing "define-and-test interpolates arguments correctly"
     (let [result (mcp-nrepl/handle-prompts-get
