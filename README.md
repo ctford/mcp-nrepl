@@ -252,7 +252,7 @@ MCP-nREPL provides 11 tools:
   - Returns: List of matching symbols or "No matches found"
 
 **Session Introspection:**
-- **session-vars** - List currently defined variables in the session
+- **vars** - List currently defined variables in the session
   - Returns: JSON array of variable names
 - **loaded-namespaces** - List all loaded namespaces
   - Returns: JSON array of namespace names

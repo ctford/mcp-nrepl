@@ -62,11 +62,11 @@
    "params" {"name" "source"
              "arguments" {"symbol" symbol}}})
 
-(defn mcp-get-session-vars [id]
+(defn mcp-get-vars [id]
   {"jsonrpc" "2.0"
    "id" id
    "method" "tools/call"
-   "params" {"name" "session-vars"
+   "params" {"name" "vars"
              "arguments" {}}})
 
 (defn mcp-get-loaded-namespaces [id]
@@ -198,15 +198,15 @@
       (color-print :green "✓ Apropos search successful")
       (is (str/includes? result "clojure.core/map")))))
 
-(deftest test-session-vars
-  (testing "Can list session variables"
+(deftest test-vars
+  (testing "Can list variables"
     (let [port nrepl-port
           [init define vars-resp] (run-mcp port
                                            (mcp-initialize)
                                            (mcp-eval 6 "(defn test-fn [] 42)")
-                                           (mcp-get-session-vars 7))
+                                           (mcp-get-vars 7))
           vars (get-result-text vars-resp)]
-      (color-print :green "✓ Session vars listing successful")
+      (color-print :green "✓ Vars listing successful")
       (is (str/includes? vars "test-fn")))))
 
 (deftest test-loaded-namespaces

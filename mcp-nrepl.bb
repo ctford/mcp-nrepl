@@ -184,7 +184,7 @@
     (some-> (eval-nrepl-code (str "(clojure.repl/source " symbol-str ")"))
             extract-nrepl-output)))
 
-(defn get-session-vars []
+(defn get-vars []
   "Get list of public variables in current namespace"
   (some-> (eval-nrepl-code "(keys (ns-publics *ns*))")
           extract-nrepl-value))
@@ -304,7 +304,7 @@
       {"query" {"type" "string"
                 "description" "The search pattern to match against symbol names"}}
       "required" ["query"]}}
-    {"name" "session-vars"
+    {"name" "vars"
      "description" "Get list of currently defined variables in the REPL session"
      "inputSchema"
      {"type" "object"
@@ -409,8 +409,8 @@
             (format-tool-result [] :default-message results)
             (format-tool-result [] :default-message "No matches found"))))
 
-      "session-vars"
-      (if-let [vars (get-session-vars)]
+      "vars"
+      (if-let [vars (get-vars)]
         (format-tool-result [] :default-message vars)
         (format-tool-result [] :default-message "[]"))
 
