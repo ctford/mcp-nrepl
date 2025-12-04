@@ -318,7 +318,23 @@
      "description" "Get the current default namespace in the REPL session"
      "inputSchema"
      {"type" "object"
-      "properties" {}}}]})
+      "properties" {}}}
+    {"name" "macroexpand-all"
+     "description" "Fully expand all macros in Clojure code using clojure.walk/macroexpand-all. Returns the completely expanded form."
+     "inputSchema"
+     {"type" "object"
+      "properties"
+      {"code" {"type" "string"
+               "description" "The Clojure expression to fully macroexpand (e.g., \"(when x y)\")"}}
+      "required" ["code"]}}
+    {"name" "macroexpand-1"
+     "description" "Expand a Clojure macro one step using macroexpand-1. Shows the result of a single macro expansion, useful for understanding macro transformations incrementally."
+     "inputSchema"
+     {"type" "object"
+      "properties"
+      {"code" {"type" "string"
+               "description" "The Clojure expression to expand one step (e.g., \"(when x y)\")"}}
+      "required" ["code"]}}]})
 
 ;; Code generation and resource helpers
 (defn build-load-file-code
@@ -330,6 +346,16 @@
   "Pure function: Build apropos code string with proper escaping"
   [query]
   (str "(require 'clojure.repl) (clojure.repl/apropos " (pr-str query) ")"))
+
+(defn build-macroexpand-all-code
+  "Pure function: Build macroexpand-all code string with proper quoting"
+  [code]
+  (str "(require 'clojure.walk) (clojure.walk/macroexpand-all (quote " code "))"))
+
+(defn build-macroexpand-1-code
+  "Pure function: Build macroexpand-1 code string with proper quoting"
+  [code]
+  (str "(macroexpand-1 (quote " code "))"))
 
 (defn get-apropos-results [query]
   "Search for symbols matching a pattern"
@@ -397,6 +423,18 @@
       (if-let [ns (get-current-namespace)]
         (format-tool-result [] :default-message ns)
         (format-tool-result [] :default-message "user"))
+
+      "macroexpand-all"
+      (with-required-param arguments "code" "macroexpanding code"
+        (fn [code]
+          (format-tool-result
+            (eval-nrepl-code (build-macroexpand-all-code code)))))
+
+      "macroexpand-1"
+      (with-required-param arguments "code" "macroexpanding code one step"
+        (fn [code]
+          (format-tool-result
+            (eval-nrepl-code (build-macroexpand-1-code code)))))
 
       (format-tool-error (str "Unknown tool: " tool-name)))))
 

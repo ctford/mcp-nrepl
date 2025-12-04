@@ -62,10 +62,10 @@
 
 ;; Test tools list contains all expected tools with correct schemas
 (deftest tools-list-contains-all-expected-tools-with-correct-schemas
-  (testing "Tools list includes all 9 tools (eval, load, set-ns, get-doc, get-source, apropos, session tools)"
+  (testing "Tools list includes all 11 tools (eval, load, set-ns, get-doc, get-source, apropos, session tools, macroexpand)"
     (let [result (mcp-nrepl/handle-tools-list)
           tools (get result "tools")]
-      (is (= 9 (count tools)) "Should have 9 tools")
+      (is (= 11 (count tools)) "Should have 11 tools")
       (is (some #(= "eval-clojure" (get % "name")) tools))
       (is (some #(= "load-file" (get % "name")) tools))
       (is (some #(= "set-namespace" (get % "name")) tools))
@@ -74,7 +74,9 @@
       (is (some #(= "apropos" (get % "name")) tools))
       (is (some #(= "session-vars" (get % "name")) tools))
       (is (some #(= "session-namespaces" (get % "name")) tools))
-      (is (some #(= "current-namespace" (get % "name")) tools)))))
+      (is (some #(= "current-namespace" (get % "name")) tools))
+      (is (some #(= "macroexpand-all" (get % "name")) tools))
+      (is (some #(= "macroexpand-1" (get % "name")) tools)))))
 
 ;; Test resources list is now empty (all migrated to tools)
 (deftest resources-list-is-empty
@@ -280,6 +282,24 @@
            (mcp-nrepl/build-apropos-code "test\"quote")))
     (is (= "(require 'clojure.repl) (clojure.repl/apropos \"with spaces\")"
            (mcp-nrepl/build-apropos-code "with spaces")))))
+
+(deftest build-macroexpand-all-code-generates-correctly
+  (testing "Builds correct macroexpand-all code"
+    (is (= "(require 'clojure.walk) (clojure.walk/macroexpand-all (quote (when x y)))"
+           (mcp-nrepl/build-macroexpand-all-code "(when x y)"))))
+
+  (testing "Handles nested expressions"
+    (is (= "(require 'clojure.walk) (clojure.walk/macroexpand-all (quote (-> x (+ 1) (* 2))))"
+           (mcp-nrepl/build-macroexpand-all-code "(-> x (+ 1) (* 2))")))))
+
+(deftest build-macroexpand-1-code-generates-correctly
+  (testing "Builds correct macroexpand-1 code"
+    (is (= "(macroexpand-1 (quote (when x y)))"
+           (mcp-nrepl/build-macroexpand-1-code "(when x y)"))))
+
+  (testing "Handles threading macro"
+    (is (= "(macroexpand-1 (quote (-> x (+ 1) (* 2))))"
+           (mcp-nrepl/build-macroexpand-1-code "(-> x (+ 1) (* 2))")))))
 
 ;; Test prompts handlers
 (deftest handle-prompts-list-returns-all-prompts

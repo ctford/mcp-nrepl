@@ -215,7 +215,7 @@ All test suites are written in Babashka for consistency and maintainability.
 
 ### Available Tools
 
-MCP-nREPL provides 9 tools:
+MCP-nREPL provides 11 tools:
 
 **Code Execution:**
 - **eval-clojure** - Evaluate Clojure code expressions
@@ -229,6 +229,16 @@ MCP-nREPL provides 9 tools:
   - Parameters: `namespace` (string, required)
   - Returns: Confirmation of namespace switch
   - Creates namespace if it doesn't exist
+
+**Macro Expansion:**
+- **macroexpand-all** - Fully expand all macros in Clojure code
+  - Parameters: `code` (string, required)
+  - Returns: Completely expanded form using `clojure.walk/macroexpand-all`
+  - Useful for understanding complete macro transformations
+- **macroexpand-1** - Expand a Clojure macro one step
+  - Parameters: `code` (string, required)
+  - Returns: Result of a single macro expansion using `macroexpand-1`
+  - Useful for understanding macro transformations incrementally
 
 **Documentation:**
 - **doc** - Get documentation for a Clojure symbol

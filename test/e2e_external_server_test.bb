@@ -96,6 +96,20 @@
    "params" {"name" prompt-name
              "arguments" arguments}})
 
+(defn mcp-macroexpand-all [id code]
+  {"jsonrpc" "2.0"
+   "id" id
+   "method" "tools/call"
+   "params" {"name" "macroexpand-all"
+             "arguments" {"code" code}}})
+
+(defn mcp-macroexpand-1 [id code]
+  {"jsonrpc" "2.0"
+   "id" id
+   "method" "tools/call"
+   "params" {"name" "macroexpand-1"
+             "arguments" {"code" code}}})
+
 ;; Test utilities
 (defn run-mcp [port & messages]
   "Send JSON-RPC messages to mcp-nrepl and get parsed responses"
@@ -296,6 +310,26 @@
       (color-print :green "✓ define-and-test prompt interpolated arguments")
       (is (str/includes? message-text "square"))
       (is (str/includes? message-text "(defn square [x] (* x x))")))))
+
+(deftest test-macroexpand-all-tool
+  (testing "Can fully expand macros"
+    (let [port nrepl-port
+          [init expand] (run-mcp port
+                                 (mcp-initialize)
+                                 (mcp-macroexpand-all 30 "(when x y)"))
+          result (get-result-text expand)]
+      (color-print :green "✓ Macroexpand-all tool works")
+      (is (str/includes? result "(if x")))))
+
+(deftest test-macroexpand-1-tool
+  (testing "Can expand macro one step"
+    (let [port nrepl-port
+          [init expand] (run-mcp port
+                                 (mcp-initialize)
+                                 (mcp-macroexpand-1 31 "(when x y)"))
+          result (get-result-text expand)]
+      (color-print :green "✓ Macroexpand-1 tool works")
+      (is (str/includes? result "(if x")))))
 
 ;; Main test runner
 (defn run-all-tests []
