@@ -517,7 +517,7 @@
         {"description" (str "Load and explore the file: " file-path)
          "messages" [{"role" "user"
                       "content" {"type" "text"
-                                 "text" (str "I want to load and explore the file: " file-path "\n\nPlease help me:\n1. Load the file using the load-file tool\n2. Determine what namespace it defines (look at the ns declaration)\n3. Switch to that namespace using set-ns\n4. List the public functions defined in that namespace (use resource clojure://session/vars)\n5. Show me documentation for the main functions\n\nThis workflow helps me understand what's in the file before using it.")}}]})
+                                 "text" (str "I want to load and explore the file: " file-path "\n\nPlease help me:\n1. Load the file using the load-file tool\n2. Determine what namespace it defines (look at the ns declaration)\n3. Switch to that namespace using set-namespace\n4. List the public functions defined in that namespace (use resource clojure://session/vars)\n5. Show me documentation for the main functions\n\nThis workflow helps me understand what's in the file before using it.")}}]})
 
       "debug-error"
       (let [error-code (get arguments "error-code")]
