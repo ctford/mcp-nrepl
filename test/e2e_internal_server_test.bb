@@ -111,23 +111,24 @@
          (mapv json/parse-string))))
 
 (defn get-result-text [response]
-  "Extract text from output, error, and value fields, joining with newlines"
-  (let [result (get response "result")
-        parts [(get result "output")
-               (get result "error")
-               (get result "value")]]
+  "Extract text from three content blocks, joining non-empty ones with newlines"
+  (let [content (get-in response ["result" "content"])
+        parts (map #(get % "text") content)]
     (->> parts
          (filter #(not (str/blank? %)))
          (str/join "\n"))))
 
 (defn get-output [response]
-  (get-in response ["result" "output"]))
+  "Get stdout (content block 0)"
+  (get-in response ["result" "content" 0 "text"]))
 
 (defn get-error [response]
-  (get-in response ["result" "error"]))
+  "Get stderr (content block 1)"
+  (get-in response ["result" "content" 1 "text"]))
 
 (defn get-value [response]
-  (get-in response ["result" "value"]))
+  "Get return value (content block 2)"
+  (get-in response ["result" "content" 2 "text"]))
 
 ;; Switch to e2e-internal namespace for isolation from other test suites
 (let [[init set-ns-resp] (run-mcp (mcp-initialize)
@@ -308,23 +309,25 @@
       (is (str/includes? message-text "square"))
       (is (str/includes? message-text "(defn square [x] (* x x))")))))
 
-(deftest test-named-field-extraction
-  (testing "Can extract individual fields from mixed output"
+(deftest test-content-block-extraction
+  (testing "Can extract individual content blocks from mixed output"
     (let [[init result] (run-mcp
                           (mcp-initialize)
                           (mcp-eval 30 "(do (println \"debug\") (binding [*out* *err*] (println \"warning\")) 42)"))]
-      (color-print :green "✓ Named field extraction test passed")
+      (color-print :green "✓ Content block extraction test passed")
       (is (= "debug\n" (get-output result)))
       (is (= "warning\n" (get-error result)))
       (is (= "42" (get-value result)))))
 
-  (testing "All three fields are present in response"
+  (testing "All three content blocks are present in response"
     (let [[init result] (run-mcp
                           (mcp-initialize)
-                          (mcp-eval 31 "(+ 1 2 3)"))]
-      (is (contains? (get result "result") "output"))
-      (is (contains? (get result "result") "error"))
-      (is (contains? (get result "result") "value")))))
+                          (mcp-eval 31 "(+ 1 2 3)"))
+          content (get-in result ["result" "content"])]
+      (is (= 3 (count content)))
+      (is (= "text" (get-in content [0 "type"])))
+      (is (= "text" (get-in content [1 "type"])))
+      (is (= "text" (get-in content [2 "type"]))))))
 
 ;; Main test runner
 (defn run-all-tests []

@@ -312,7 +312,7 @@
                            lines (str/split-lines output)]
                        (when (> (count lines) 1)
                          (let [response (json/parse-string (second lines))
-                               result-text (get-in response ["result" "value"])]
+                               result-text (get-in response ["result" "content" 2 "text"])]
                            {:response response
                             :text result-text}))))]
       (color-print :green "✓ Invalid namespace test completed")
@@ -374,7 +374,7 @@
                                          (mcp-get-doc 2 injection-symbol))
           has-error (or (get call-resp "error")
                        (get-in call-resp ["result" "isError"]))
-          result-text (get-in call-resp ["result" "value"])]
+          result-text (get-in call-resp ["result" "content" 2 "text"])]
       (color-print :green "✓ Code injection in doc tool test completed")
       ;; Safe if: error response OR "No documentation found" message
       (is (or has-error
@@ -392,7 +392,7 @@
                                          (mcp-get-source 2 injection-symbol))
           has-error (or (get call-resp "error")
                        (get-in call-resp ["result" "isError"]))
-          result-text (get-in call-resp ["result" "value"])]
+          result-text (get-in call-resp ["result" "content" 2 "text"])]
       (color-print :green "✓ Code injection in source tool test completed")
       ;; Safe if: error response OR "No source found" message
       (is (or has-error
@@ -410,7 +410,7 @@
                                          (mcp-apropos 2 injection-query))
           has-error (or (get call-resp "error")
                        (get-in call-resp ["result" "isError"]))
-          result-text (get-in call-resp ["result" "value"])]
+          result-text (get-in call-resp ["result" "content" 2 "text"])]
       (color-print :green "✓ Code injection in apropos tool test completed")
       ;; Safe if: error response OR search results (no "pwned" or code execution)
       (is (or has-error

@@ -210,18 +210,20 @@
        (map decode-bytes)))
 
 (defn format-tool-result
-  "Format nREPL responses into a tool result with named fields.
-   Returns three fields: output (stdout), error (stderr), and value (return value)."
+  "Format nREPL responses into a tool result with three content items.
+   Returns content array with three text blocks in consistent order:
+   [0] output (stdout), [1] error (stderr), [2] value (return value)."
   [responses & {:keys [default-message]}]
   (let [values (extract-field-from-responses responses "value")
         output (str/join "\n" (extract-field-from-responses responses "out"))
         errors (str/join "\n" (extract-field-from-responses responses "err"))
-        value-str (str/join "\n" values)]
-    {"output" (if (str/blank? output) "" output)
-     "error" (if (str/blank? errors) "" errors)
-     "value" (if (str/blank? value-str)
-               (or default-message "nil")
-               value-str)}))
+        value-str (str/join "\n" values)
+        value-text (if (str/blank? value-str)
+                     (or default-message "nil")
+                     value-str)]
+    {"content" [{"type" "text" "text" output}
+                {"type" "text" "text" errors}
+                {"type" "text" "text" value-text}]}))
 
 (defn format-tool-error
   "Format an error message as a tool response"
@@ -255,7 +257,7 @@
 (defn handle-tools-list []
   {"tools"
    [{"name" "eval-clojure"
-     "description" "Evaluate Clojure code using nREPL"
+     "description" "Evaluate Clojure code using nREPL. Returns three content blocks: [0] stdout output, [1] stderr errors, [2] return value."
      "inputSchema"
      {"type" "object"
       "properties"
@@ -263,7 +265,7 @@
                "description" "The Clojure code to evaluate"}}
       "required" ["code"]}}
     {"name" "load-file"
-     "description" "Load and evaluate a Clojure file using nREPL"
+     "description" "Load and evaluate a Clojure file using nREPL. Returns three content blocks: [0] stdout output, [1] stderr errors, [2] return value."
      "inputSchema"
      {"type" "object"
       "properties"
@@ -271,7 +273,7 @@
                     "description" "The path to the Clojure file to load"}}
       "required" ["file-path"]}}
     {"name" "set-namespace"
-     "description" "Switch to a different namespace in the nREPL session"
+     "description" "Switch to a different namespace in the nREPL session. Returns three content blocks: [0] stdout output, [1] stderr errors, [2] return value."
      "inputSchema"
      {"type" "object"
       "properties"
@@ -279,7 +281,7 @@
                     "description" "The namespace to switch to"}}
       "required" ["namespace"]}}
     {"name" "doc"
-     "description" "Get documentation for a Clojure symbol"
+     "description" "Get documentation for a Clojure symbol. Returns three content blocks: [0] stdout output, [1] stderr errors, [2] documentation text."
      "inputSchema"
      {"type" "object"
       "properties"
@@ -287,7 +289,7 @@
                  "description" "The symbol name to get documentation for"}}
       "required" ["symbol"]}}
     {"name" "source"
-     "description" "Get source code for a Clojure symbol"
+     "description" "Get source code for a Clojure symbol. Returns three content blocks: [0] stdout output, [1] stderr errors, [2] source code."
      "inputSchema"
      {"type" "object"
       "properties"
@@ -295,7 +297,7 @@
                  "description" "The symbol name to get source code for"}}
       "required" ["symbol"]}}
     {"name" "apropos"
-     "description" "Search for symbols matching a pattern in their name or documentation"
+     "description" "Search for symbols matching a pattern in their name or documentation. Returns three content blocks: [0] stdout output, [1] stderr errors, [2] matching symbols."
      "inputSchema"
      {"type" "object"
       "properties"
@@ -303,17 +305,17 @@
                 "description" "The search pattern to match against symbol names"}}
       "required" ["query"]}}
     {"name" "session-vars"
-     "description" "Get list of currently defined variables in the REPL session"
+     "description" "Get list of currently defined variables in the REPL session. Returns three content blocks: [0] stdout output, [1] stderr errors, [2] variable list."
      "inputSchema"
      {"type" "object"
       "properties" {}}}
     {"name" "session-namespaces"
-     "description" "Get list of currently loaded namespaces in the REPL session"
+     "description" "Get list of currently loaded namespaces in the REPL session. Returns three content blocks: [0] stdout output, [1] stderr errors, [2] namespace list."
      "inputSchema"
      {"type" "object"
       "properties" {}}}
     {"name" "current-namespace"
-     "description" "Get the current default namespace in the REPL session"
+     "description" "Get the current default namespace in the REPL session. Returns three content blocks: [0] stdout output, [1] stderr errors, [2] namespace name."
      "inputSchema"
      {"type" "object"
       "properties" {}}}]})
@@ -333,7 +335,7 @@
   "Search for symbols matching a pattern"
   (some-> (eval-nrepl-code (build-apropos-code query))
           format-tool-result
-          (get "value")))
+          (get-in ["content" 2 "text"])))
 
 (defn handle-tools-call [params]
   (let [tool-name (get params "name")
@@ -580,7 +582,7 @@
   (try
     (let [responses (eval-clojure-code code)
           result (format-tool-result responses)
-          value (get result "value")]
+          value (get-in result ["content" 2 "text"])]
       (println value)
       (System/exit 0))
     (catch Exception e

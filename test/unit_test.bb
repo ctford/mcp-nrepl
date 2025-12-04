@@ -231,63 +231,64 @@
 
 ;; Test helper function: format-tool-result
 (deftest format-tool-result-formats-responses-correctly
-  (testing "Formats responses with values, output, and errors as named fields"
+  (testing "Formats responses as three content blocks (output, error, value)"
     (let [responses [{"value" (.getBytes "42" "UTF-8")}
                      {"out" (.getBytes "debug output" "UTF-8")}
                      {"err" (.getBytes "warning" "UTF-8")}]
           result (mcp-nrepl/format-tool-result responses)
-          expected {"output" "debug output"
-                    "error" "warning"
-                    "value" "42"}]
+          expected {"content" [{"type" "text" "text" "debug output"}
+                               {"type" "text" "text" "warning"}
+                               {"type" "text" "text" "42"}]}]
       (is (= expected result))))
 
-  (testing "Uses default message in value field when result is empty"
+  (testing "Uses default message in content[2] when result is empty"
     (let [responses []
           result (mcp-nrepl/format-tool-result responses :default-message "Success!")
-          expected {"output" ""
-                    "error" ""
-                    "value" "Success!"}]
+          expected {"content" [{"type" "text" "text" ""}
+                               {"type" "text" "text" ""}
+                               {"type" "text" "text" "Success!"}]}]
       (is (= expected result))))
 
-  (testing "Returns 'nil' in value field when no default message and empty responses"
+  (testing "Returns 'nil' in content[2] when no default message and empty responses"
     (let [responses []
           result (mcp-nrepl/format-tool-result responses)
-          expected {"output" ""
-                    "error" ""
-                    "value" "nil"}]
+          expected {"content" [{"type" "text" "text" ""}
+                               {"type" "text" "text" ""}
+                               {"type" "text" "text" "nil"}]}]
       (is (= expected result))))
 
-  (testing "Empty output and error fields return empty strings"
+  (testing "Empty output and error blocks return empty strings"
     (let [responses [{"value" (.getBytes "42" "UTF-8")}]
-          result (mcp-nrepl/format-tool-result responses)]
-      (is (= "" (get result "output")))
-      (is (= "" (get result "error")))
-      (is (= "42" (get result "value")))))
+          result (mcp-nrepl/format-tool-result responses)
+          content (get result "content")]
+      (is (= "" (get-in content [0 "text"])))
+      (is (= "" (get-in content [1 "text"])))
+      (is (= "42" (get-in content [2 "text"])))))
 
-  (testing "Multiple values are joined with newlines"
+  (testing "Multiple values are joined with newlines in content[2]"
     (let [responses [{"value" (.getBytes "1" "UTF-8")}
                      {"value" (.getBytes "2" "UTF-8")}
                      {"value" (.getBytes "3" "UTF-8")}]
           result (mcp-nrepl/format-tool-result responses)
-          expected {"output" ""
-                    "error" ""
-                    "value" "1\n2\n3"}]
+          expected {"content" [{"type" "text" "text" ""}
+                               {"type" "text" "text" ""}
+                               {"type" "text" "text" "1\n2\n3"}]}]
       (is (= expected result))))
 
   (testing "Output-only response"
     (let [responses [{"out" (.getBytes "debug output" "UTF-8")}]
           result (mcp-nrepl/format-tool-result responses)
-          expected {"output" "debug output"
-                    "error" ""
-                    "value" "nil"}]
+          expected {"content" [{"type" "text" "text" "debug output"}
+                               {"type" "text" "text" ""}
+                               {"type" "text" "text" "nil"}]}]
       (is (= expected result))))
 
   (testing "Error-only response"
     (let [responses [{"err" (.getBytes "error message" "UTF-8")}]
           result (mcp-nrepl/format-tool-result responses)
-          expected {"output" ""
-                    "error" "error message"
-                    "value" "nil"}]
+          expected {"content" [{"type" "text" "text" ""}
+                               {"type" "text" "text" "error message"}
+                               {"type" "text" "text" "nil"}]}]
       (is (= expected result)))))
 
 ;; Test helper function: format-tool-error
