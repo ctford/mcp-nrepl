@@ -254,7 +254,7 @@ MCP-nREPL provides 11 tools:
 **Session Introspection:**
 - **session-vars** - List currently defined variables in the session
   - Returns: JSON array of variable names
-- **session-namespaces** - List all loaded namespaces
+- **loaded-namespaces** - List all loaded namespaces
   - Returns: JSON array of namespace names
 - **current-namespace** - Get the current default namespace
   - Returns: Current namespace name

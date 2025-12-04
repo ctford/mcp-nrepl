@@ -189,7 +189,7 @@
   (some-> (eval-nrepl-code "(keys (ns-publics *ns*))")
           extract-nrepl-value))
 
-(defn get-session-namespaces []
+(defn get-loaded-namespaces []
   "Get list of all loaded namespaces"
   (some-> (eval-nrepl-code "(map str (all-ns))")
           extract-nrepl-value))
@@ -309,7 +309,7 @@
      "inputSchema"
      {"type" "object"
       "properties" {}}}
-    {"name" "session-namespaces"
+    {"name" "loaded-namespaces"
      "description" "Get list of currently loaded namespaces in the REPL session"
      "inputSchema"
      {"type" "object"
@@ -414,8 +414,8 @@
         (format-tool-result [] :default-message vars)
         (format-tool-result [] :default-message "[]"))
 
-      "session-namespaces"
-      (if-let [namespaces (get-session-namespaces)]
+      "loaded-namespaces"
+      (if-let [namespaces (get-loaded-namespaces)]
         (format-tool-result [] :default-message namespaces)
         (format-tool-result [] :default-message "[]"))
 

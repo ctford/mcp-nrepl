@@ -183,7 +183,7 @@ MCP-nREPL provides 9 tools for interacting with the nREPL session:
 - **`session-vars`** - Get list of currently defined variables in the REPL session
   - Returns: JSON array of variable names
 
-- **`session-namespaces`** - Get list of currently loaded namespaces in the REPL session
+- **`loaded-namespaces`** - Get list of currently loaded namespaces in the REPL session
   - Returns: JSON array of namespace names
 
 - **`current-namespace`** - Get the current default namespace in the REPL session

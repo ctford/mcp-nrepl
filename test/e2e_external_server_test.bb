@@ -69,11 +69,11 @@
    "params" {"name" "session-vars"
              "arguments" {}}})
 
-(defn mcp-get-session-namespaces [id]
+(defn mcp-get-loaded-namespaces [id]
   {"jsonrpc" "2.0"
    "id" id
    "method" "tools/call"
-   "params" {"name" "session-namespaces"
+   "params" {"name" "loaded-namespaces"
              "arguments" {}}})
 
 (defn mcp-get-current-namespace [id]
@@ -209,14 +209,14 @@
       (color-print :green "✓ Session vars listing successful")
       (is (str/includes? vars "test-fn")))))
 
-(deftest test-session-namespaces
-  (testing "Can list session namespaces"
+(deftest test-loaded-namespaces
+  (testing "Can list loaded namespaces"
     (let [port nrepl-port
           [init ns-resp] (run-mcp port
                                   (mcp-initialize)
-                                  (mcp-get-session-namespaces 10))
+                                  (mcp-get-loaded-namespaces 10))
           namespaces (get-result-text ns-resp)]
-      (color-print :green "✓ Session namespaces listing successful")
+      (color-print :green "✓ Loaded namespaces listing successful")
       (is (str/includes? namespaces "user")))))
 
 (deftest test-doc-tool

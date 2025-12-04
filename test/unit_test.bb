@@ -73,7 +73,7 @@
       (is (some #(= "source" (get % "name")) tools))
       (is (some #(= "apropos" (get % "name")) tools))
       (is (some #(= "session-vars" (get % "name")) tools))
-      (is (some #(= "session-namespaces" (get % "name")) tools))
+      (is (some #(= "loaded-namespaces" (get % "name")) tools))
       (is (some #(= "current-namespace" (get % "name")) tools))
       (is (some #(= "macroexpand-all" (get % "name")) tools))
       (is (some #(= "macroexpand-1" (get % "name")) tools)))))
