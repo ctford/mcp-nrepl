@@ -268,7 +268,7 @@
      {"type" "object"
       "properties"
       {"code" {"type" "string"
-               "description" "The Clojure code to evaluate"}}
+               "description" "The Clojure code to evaluate (e.g., \"(+ 1 2 3)\", \"(defn square [x] (* x x))\")"}}
       "required" ["code"]}}
     {"name" "load-file"
      "description" "Load and evaluate a Clojure file using nREPL"
@@ -276,7 +276,7 @@
      {"type" "object"
       "properties"
       {"file-path" {"type" "string"
-                    "description" "The path to the Clojure file to load"}}
+                    "description" "The path to the Clojure file to load (e.g., \"src/myapp/core.clj\", \"test/myapp/core_test.clj\")"}}
       "required" ["file-path"]}}
     {"name" "set-namespace"
      "description" "Switch to a different namespace in the nREPL session"
@@ -284,7 +284,7 @@
      {"type" "object"
       "properties"
       {"namespace" {"type" "string"
-                    "description" "The namespace to switch to"}}
+                    "description" "The namespace to switch to (e.g., \"clojure.set\", \"user\", \"myapp.core\")"}}
       "required" ["namespace"]}}
     {"name" "doc"
      "description" "Get documentation for a Clojure symbol"
@@ -292,7 +292,7 @@
      {"type" "object"
       "properties"
       {"symbol" {"type" "string"
-                 "description" "The symbol name to get documentation for"}}
+                 "description" "The symbol name to get documentation for (e.g., \"map\", \"clojure.set/union\", \"filter\")"}}
       "required" ["symbol"]}}
     {"name" "source"
      "description" "Get source code for a Clojure symbol"
@@ -300,7 +300,7 @@
      {"type" "object"
       "properties"
       {"symbol" {"type" "string"
-                 "description" "The symbol name to get source code for"}}
+                 "description" "The symbol name to get source code for (e.g., \"map\", \"clojure.set/union\", \"reduce\")"}}
       "required" ["symbol"]}}
     {"name" "apropos"
      "description" "Search for symbols matching a pattern in their name or documentation"
@@ -308,7 +308,7 @@
      {"type" "object"
       "properties"
       {"query" {"type" "string"
-                "description" "The search pattern to match against symbol names"}}
+                "description" "The search pattern to match against symbol names (e.g., \"map\" finds map, map?, mapcat, keep-indexed)"}}
       "required" ["query"]}}
     {"name" "vars"
      "description" "Get list of currently defined variables in a namespace (defaults to current namespace)"
@@ -316,7 +316,7 @@
      {"type" "object"
       "properties"
       {"namespace" {"type" "string"
-                    "description" "The namespace to list vars from (optional, defaults to current namespace)"}}}}
+                    "description" "The namespace to list vars from (optional, defaults to current namespace) (e.g., \"clojure.set\", \"user\")"}}}}
     {"name" "loaded-namespaces"
      "description" "Get list of currently loaded namespaces in the REPL session"
      "inputSchema"
