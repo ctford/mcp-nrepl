@@ -10,6 +10,7 @@
 (def MCP-VERSION "2024-11-05")
 (def SERVER-INFO {:name "mcp-nrepl" :version "0.1.0"})
 (def MAX-REQUEST-SIZE 65536) ;; 64 KB - maximum JSON-RPC request size
+(def MAX-TIMEOUT-MS 300000) ;; 5 minutes - maximum timeout for eval operations
 
 ;; Resource URI prefixes
 (def DOC-URI-PREFIX "clojure://doc/")
@@ -402,8 +403,8 @@
     (< timeout-ms 100)
     "timeout-ms must be at least 100ms"
 
-    (> timeout-ms 300000)
-    "timeout-ms cannot exceed 300000ms (5 minutes)"
+    (> timeout-ms MAX-TIMEOUT-MS)
+    (str "timeout-ms cannot exceed " MAX-TIMEOUT-MS "ms (5 minutes)")
 
     :else
     nil))
@@ -411,11 +412,10 @@
 (defn timeout-error-message
   "Generate timeout error message with helpful suggestion that respects maximum timeout"
   [operation timeout-ms]
-  (let [max-timeout 300000
-        suggested-timeout (min max-timeout (* 2 timeout-ms))]
+  (let [suggested-timeout (min MAX-TIMEOUT-MS (* 2 timeout-ms))]
     (str operation " timed out after " timeout-ms "ms. "
-         (if (>= timeout-ms 150000)
-           "Timeout is already at or near maximum (300000ms)."
+         (if (>= timeout-ms (/ MAX-TIMEOUT-MS 2))
+           (str "Timeout is already at or near maximum (" MAX-TIMEOUT-MS "ms).")
            (str "Try increasing timeout-ms to " suggested-timeout "ms or higher.")))))
 
 (defn handle-tools-call [params]
