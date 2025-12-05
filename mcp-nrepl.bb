@@ -584,6 +584,7 @@
   [["-p" "--nrepl-port PORT" "Connect to nREPL server on specified port"
     :parse-fn parse-port
     :validate [integer? "Must be a valid port number"]]
+   ["-b" "--bridge" "Connect to external nREPL server (bridge mode)"]
    ["-s" "--server" "Start embedded nREPL server (no external server needed)"]
    ["-e" "--eval CODE" "Evaluate Clojure code and print result (connectionless eval mode)"]
    ["-h" "--help" "Show this help message"]])
@@ -592,6 +593,7 @@
   (->> ["mcp-nrepl - MCP server bridge to nREPL"
         ""
         "Usage: mcp-nrepl.bb [OPTIONS]"
+        "       mcp-nrepl.bb --bridge          # Connect to external nREPL (best practice)"
         "       mcp-nrepl.bb --server          # Start with embedded nREPL server"
         "       mcp-nrepl.bb --eval CODE       # Evaluate code"
         ""
@@ -602,10 +604,12 @@
         "  MCP Server Mode (default): Reads MCP JSON-RPC messages from stdin"
         "  Connectionless Eval Mode (--eval): Evaluates code and prints result"
         ""
-        "Server Options:"
+        "Connection Options:"
+        "  --bridge: Connect to external nREPL server (explicit bridge mode, recommended)"
         "  --server: Start an embedded nREPL server (no external server needed)"
-        "  --nrepl-port PORT: Connect to external nREPL server on specified port"
-        "  If neither is specified, reads from .nrepl-port file in current directory."]
+        "  --nrepl-port PORT: Specify port for external nREPL server"
+        "  --bridge and --server are mutually exclusive"
+        "  If no connection option is specified, reads from .nrepl-port file (implicit bridge mode)."]
        (str/join \newline)))
 
 (defn error-msg [errors]
@@ -620,6 +624,9 @@
 
       errors
       {:exit-message (error-msg errors)}
+
+      (and (:bridge options) (:server options))
+      {:exit-message "Error: Cannot specify both --bridge and --server. Choose one mode."}
 
       :else
       {:options options})))

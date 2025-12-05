@@ -64,7 +64,7 @@ Create a `.mcp.json` file in your Clojure project root:
     "mcp-nrepl": {
       "type": "stdio",
       "command": "bb",
-      "args": ["/Users/yourname/.mcp-servers/mcp-nrepl.bb"],
+      "args": ["/Users/yourname/.mcp-servers/mcp-nrepl.bb", "--bridge"],
       "_comment": "Replace /Users/yourname with your actual home directory path"
     }
   }
@@ -72,6 +72,7 @@ Create a `.mcp.json` file in your Clojure project root:
 ```
 
 **Key advantages**:
+- `--bridge` explicitly indicates bridge mode (best practice)
 - The working directory is your project root, so `.nrepl-port` is automatically discovered
 - No need for `--nrepl-port` argument in typical workflows
 - Configuration is project-specific and can be checked into version control
@@ -99,7 +100,7 @@ Add the mcp-nrepl server with embedded server mode (recommended):
 
 Note: `"type": "stdio"` is optional (stdio is the default) but included for clarity.
 
-**Alternative - External Server**: If you want to connect to an existing nREPL server with project dependencies loaded, you can specify the port instead:
+**Alternative - External Server**: If you want to connect to an existing nREPL server with project dependencies loaded, you can specify the port explicitly:
 
 ```json
 {
@@ -107,7 +108,7 @@ Note: `"type": "stdio"` is optional (stdio is the default) but included for clar
     "mcp-nrepl": {
       "type": "stdio",
       "command": "bb",
-      "args": ["/Users/yourname/.mcp-servers/mcp-nrepl.bb", "--nrepl-port", "1667"]
+      "args": ["/Users/yourname/.mcp-servers/mcp-nrepl.bb", "--bridge", "--nrepl-port", "1667"]
     }
   }
 }
@@ -171,10 +172,12 @@ bb mcp-nrepl.bb -e "(str \"Hello\" \" \" \"World\")"
 Run as an MCP server for AI assistants and other MCP clients:
 
 ```bash
-bb mcp-nrepl.bb
+bb mcp-nrepl.bb --bridge
 ```
 
 The server will read from stdin and write to stdout using JSON-RPC 2.0 protocol.
+
+Note: `--bridge` is recommended for clarity, but the flag is optional (bridge mode is the default).
 
 Example initialization message:
 ```json

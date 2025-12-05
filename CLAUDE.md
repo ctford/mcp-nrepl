@@ -92,14 +92,17 @@ bb mcp-nrepl.bb --server
 bb mcp-nrepl.bb --server --eval "(+ 1 2 3)"
 ```
 
-**External Server Mode (--nrepl-port)**
+**External Server Mode (--bridge)**
 Connect to an existing nREPL server for access to project dependencies:
 
 ```bash
-# Command-line argument (preferred)
-bb mcp-nrepl.bb --nrepl-port 1667
+# Explicit bridge mode (recommended)
+bb mcp-nrepl.bb --bridge
 
-# .nrepl-port file (fallback)
+# With explicit port
+bb mcp-nrepl.bb --bridge --nrepl-port 1667
+
+# Implicit bridge mode (backwards compatible)
 echo "1667" > .nrepl-port
 bb mcp-nrepl.bb
 
@@ -123,25 +126,25 @@ bb mcp-nrepl.bb -e "(greet \"World\")"
 ### MCP Protocol Usage
 ```bash
 # Send JSON-RPC messages directly
-echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}}}' | bb mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}}}' | bb mcp-nrepl.bb --bridge --nrepl-port 1667
 
 # Use the eval-clojure tool
-echo '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "eval-clojure", "arguments": {"code": "(+ 1 2 3)"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "eval-clojure", "arguments": {"code": "(+ 1 2 3)"}}}' | bb mcp-nrepl.bb --bridge --nrepl-port 1667
 
 # Load a Clojure file
-echo '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "load-file", "arguments": {"file-path": "src/my-file.clj"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "load-file", "arguments": {"file-path": "src/my-file.clj"}}}' | bb mcp-nrepl.bb --bridge --nrepl-port 1667
 
 # Switch namespace
-echo '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "set-namespace", "arguments": {"namespace": "my.namespace"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "set-namespace", "arguments": {"namespace": "my.namespace"}}}' | bb mcp-nrepl.bb --bridge --nrepl-port 1667
 
 # Search for symbols matching a pattern
-echo '{"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "apropos", "arguments": {"query": "map"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "apropos", "arguments": {"query": "map"}}}' | bb mcp-nrepl.bb --bridge --nrepl-port 1667
 
 # Get documentation for a symbol
-echo '{"jsonrpc": "2.0", "id": 6, "method": "tools/call", "params": {"name": "doc", "arguments": {"symbol": "map"}}}' | bb mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 6, "method": "tools/call", "params": {"name": "doc", "arguments": {"symbol": "map"}}}' | bb mcp-nrepl.bb --bridge --nrepl-port 1667
 
 # Get current namespace
-echo '{"jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": {"name": "current-namespace", "arguments": {}}}' | bb mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": {"name": "current-namespace", "arguments": {}}}' | bb mcp-nrepl.bb --bridge --nrepl-port 1667
 ```
 
 ## Tools
@@ -224,7 +227,7 @@ bb test/e2e_test.bb     # Just E2E tests
 bb mcp-nrepl.bb --eval "(+ 1 1)"
 
 # Test MCP protocol directly
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | bb mcp-nrepl.bb --nrepl-port 1667
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | bb mcp-nrepl.bb --bridge --nrepl-port 1667
 ```
 
 ### Code Quality

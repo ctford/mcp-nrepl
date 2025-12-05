@@ -405,6 +405,38 @@
     (is (thrown-with-msg? Exception #"Unknown prompt: nonexistent"
           (mcp-nrepl/handle-prompts-get {"name" "nonexistent"})))))
 
+;; Test CLI argument validation
+(deftest validate-args-handles-bridge-flag
+  (testing "--bridge flag is accepted and parsed correctly"
+    (let [result (mcp-nrepl/validate-args ["--bridge"])]
+      (is (= {:options {:bridge true}} result))
+      (is (true? (get-in result [:options :bridge])))))
+
+  (testing "--bridge can be combined with --nrepl-port"
+    (let [result (mcp-nrepl/validate-args ["--bridge" "--nrepl-port" "1667"])]
+      (is (true? (get-in result [:options :bridge])))
+      (is (= 1667 (get-in result [:options :nrepl-port])))))
+
+  (testing "--bridge and --server are mutually exclusive"
+    (let [result (mcp-nrepl/validate-args ["--bridge" "--server"])]
+      (is (contains? result :exit-message))
+      (is (str/includes? (:exit-message result) "Cannot specify both --bridge and --server"))))
+
+  (testing "--server alone works correctly"
+    (let [result (mcp-nrepl/validate-args ["--server"])]
+      (is (= {:options {:server true}} result))
+      (is (true? (get-in result [:options :server])))))
+
+  (testing "No flags (implicit bridge mode) works correctly"
+    (let [result (mcp-nrepl/validate-args [])]
+      (is (= {:options {}} result))))
+
+  (testing "--help flag shows usage"
+    (let [result (mcp-nrepl/validate-args ["--help"])]
+      (is (contains? result :exit-message))
+      (is (true? (:ok? result)))
+      (is (str/includes? (:exit-message result) "mcp-nrepl")))))
+
 ;; Main test runner
 (defn run-all-tests []
   (println "Running unit tests for pure functions...")
