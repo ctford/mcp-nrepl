@@ -146,7 +146,7 @@ echo '{"jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": {"name": "cu
 
 ## Tools
 
-MCP-nREPL provides 9 tools for interacting with the nREPL session:
+MCP-nREPL provides 11 tools for interacting with the nREPL session:
 
 ### Code Execution Tools
 

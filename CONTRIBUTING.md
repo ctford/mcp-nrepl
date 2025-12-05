@@ -24,6 +24,6 @@ I'm still figuring out what this constraint means for collaboration, so bear wit
 MCP-nREPL follows strict design constraints:
 - **Zero dependencies** - Only Babashka built-ins, no external libraries
 - **REPL access only** - Provides access to nREPL, doesn't add functionality beyond that
-- **Simple, fast, and robust** - Minimal code that's easy to understand and performs well
+- **Minimal, fast, and readable** - Clean code that's easy to understand and performs well
 
 Thank you for understanding this unusual approach to development!

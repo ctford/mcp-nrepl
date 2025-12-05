@@ -292,7 +292,9 @@ MCP-nREPL was built with [Claude Code](https://claude.com/claude-code), an AI-po
 
 ## Contributing
 
-This is a minimal implementation focused on core functionality. Contributions should maintain the simplicity and readability goals of the project.
+MCP-nREPL is developed under a creative constraint where all code is written by Claude Code. See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute ideas and proof-of-concept PRs.
+
+Design constraints: zero dependencies, REPL access only, minimal/fast/readable code.
 
 ## License
 
