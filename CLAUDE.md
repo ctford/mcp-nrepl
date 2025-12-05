@@ -145,6 +145,12 @@ echo '{"jsonrpc": "2.0", "id": 6, "method": "tools/call", "params": {"name": "do
 
 # Get current namespace
 echo '{"jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": {"name": "current-namespace", "arguments": {}}}' | bb mcp-nrepl.bb --bridge --nrepl-port 1667
+
+# Evaluate with custom timeout
+echo '{"jsonrpc": "2.0", "id": 8, "method": "tools/call", "params": {"name": "eval-clojure", "arguments": {"code": "(expensive-operation)", "timeout-ms": 30000}}}' | bb mcp-nrepl.bb --bridge
+
+# Load file with custom timeout
+echo '{"jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": {"name": "load-file", "arguments": {"file-path": "large-file.clj", "timeout-ms": 10000}}}' | bb mcp-nrepl.bb --bridge
 ```
 
 ## Tools

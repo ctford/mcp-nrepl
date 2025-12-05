@@ -535,6 +535,47 @@
         (is (contains? result :exit-message))
         (is (str/includes? (:exit-message result) "Unknown option"))))))
 
+(deftest eval-clojure-validates-timeout
+  (testing "eval-clojure: Valid timeout values accepted"
+    (let [result (mcp-nrepl/handle-tools-call
+                  {"name" "eval-clojure"
+                   "arguments" {"code" "(+ 1 2)" "timeout-ms" 5000}})]
+      (is (not (str/includes? (get-in result ["content" 0 "text"]) "Error")))))
+
+  (testing "eval-clojure: Invalid timeout rejected (below minimum)"
+    (let [result (mcp-nrepl/handle-tools-call
+                  {"name" "eval-clojure"
+                   "arguments" {"code" "(+ 1 2)" "timeout-ms" 50}})]
+      (is (str/includes? (get-in result ["content" 0 "text"]) "at least 100ms"))))
+
+  (testing "eval-clojure: Invalid timeout rejected (above maximum)"
+    (let [result (mcp-nrepl/handle-tools-call
+                  {"name" "eval-clojure"
+                   "arguments" {"code" "(+ 1 2)" "timeout-ms" 999999}})]
+      (is (str/includes? (get-in result ["content" 0 "text"]) "cannot exceed 300000ms"))))
+
+  (testing "eval-clojure: Default timeout when not specified"
+    (let [result (mcp-nrepl/handle-tools-call
+                  {"name" "eval-clojure"
+                   "arguments" {"code" "(+ 1 2)"}})]
+      (is (not (str/includes? (get-in result ["content" 0 "text"]) "Error")))))
+
+  (testing "load-file: Valid timeout values accepted"
+    (let [test-file "/tmp/test-timeout.clj"
+          _ (spit test-file "(ns test-timeout)")
+          result (mcp-nrepl/handle-tools-call
+                  {"name" "load-file"
+                   "arguments" {"file-path" test-file "timeout-ms" 5000}})]
+      (is (not (str/includes? (get-in result ["content" 0 "text"]) "Error")))))
+
+  (testing "load-file: Default timeout when not specified"
+    (let [test-file "/tmp/test-timeout.clj"
+          _ (spit test-file "(ns test-timeout)")
+          result (mcp-nrepl/handle-tools-call
+                  {"name" "load-file"
+                   "arguments" {"file-path" test-file}})]
+      (is (not (str/includes? (get-in result ["content" 0 "text"]) "Error"))))))
+
 ;; Main test runner
 (defn run-all-tests []
   (println "Running unit tests for pure functions...")

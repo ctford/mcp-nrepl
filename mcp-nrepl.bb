@@ -19,6 +19,7 @@
 ;; Global state
 (def state (atom {:nrepl-input-stream nil
                   :nrepl-output-stream nil
+                  :nrepl-socket nil
                   :session-id nil
                   :initialized false
                   :nrepl-port nil
@@ -67,9 +68,10 @@
     (let [socket (java.net.Socket. "localhost" port)
           input-stream (java.io.PushbackInputStream. (.getInputStream socket))
           output-stream (.getOutputStream socket)]
-      (.setSoTimeout socket 5000)
+      (.setSoTimeout socket 2000)
       {:input-stream input-stream
-       :output-stream output-stream})
+       :output-stream output-stream
+       :socket socket})
     (catch Exception e
       (log-error "Failed to connect to nREPL on port %d: %s" port (.getMessage e))
       nil)))
@@ -106,12 +108,27 @@
 (defn ensure-nrepl-connection []
   (when-not (:nrepl-input-stream @state)
     (when-let [port (or (:nrepl-port @state) (read-nrepl-port))]
-      (when-let [{:keys [input-stream output-stream]} (connect-to-nrepl port)]
+      (when-let [{:keys [input-stream output-stream socket]} (connect-to-nrepl port)]
         (swap! state assoc
                :nrepl-input-stream input-stream
-               :nrepl-output-stream output-stream)
+               :nrepl-output-stream output-stream
+               :nrepl-socket socket)
         (when-let [session-id (create-session)]
           (swap! state assoc :session-id session-id))))))
+
+(defn with-socket-timeout
+  "Temporarily set socket timeout, execute function, then restore original timeout"
+  [timeout-ms f]
+  (ensure-nrepl-connection)
+  (let [{:keys [nrepl-socket]} @state]
+    (if-not nrepl-socket
+      (throw (Exception. "No nREPL connection available"))
+      (let [original-timeout (.getSoTimeout nrepl-socket)]
+        (try
+          (.setSoTimeout nrepl-socket timeout-ms)
+          (f)
+          (finally
+            (.setSoTimeout nrepl-socket original-timeout)))))))
 
 (defn collect-nrepl-responses
   "Collect all nREPL responses until a 'done' status is received"
@@ -268,7 +285,9 @@
      {"type" "object"
       "properties"
       {"code" {"type" "string"
-               "description" "The Clojure code to evaluate (e.g., \"(+ 1 2 3)\", \"(defn square [x] (* x x))\")"}}
+               "description" "The Clojure code to evaluate (e.g., \"(+ 1 2 3)\", \"(defn square [x] (* x x))\")"}
+       "timeout-ms" {"type" "number"
+                     "description" "Optional timeout in milliseconds (default: 2000ms). Increase for long-running operations like complex computations."}}
       "required" ["code"]}}
     {"name" "load-file"
      "description" "Load and evaluate a Clojure file using nREPL"
@@ -276,7 +295,9 @@
      {"type" "object"
       "properties"
       {"file-path" {"type" "string"
-                    "description" "The path to the Clojure file to load (e.g., \"src/myapp/core.clj\", \"test/myapp/core_test.clj\")"}}
+                    "description" "The path to the Clojure file to load (e.g., \"src/myapp/core.clj\", \"test/myapp/core_test.clj\")"}
+       "timeout-ms" {"type" "number"
+                     "description" "Optional timeout in milliseconds (default: 2000ms). Increase for large files."}}
       "required" ["file-path"]}}
     {"name" "set-namespace"
      "description" "Switch to a different namespace in the nREPL session"
@@ -378,15 +399,52 @@
       "eval-clojure"
       (with-required-param arguments "code" "evaluating Clojure code"
         (fn [code]
-          (format-tool-result (eval-clojure-code code))))
+          (let [timeout-ms (get arguments "timeout-ms" 2000)]
+            (cond
+              (not (number? timeout-ms))
+              (format-tool-error "timeout-ms must be a number")
+
+              (< timeout-ms 100)
+              (format-tool-error "timeout-ms must be at least 100ms")
+
+              (> timeout-ms 300000)
+              (format-tool-error "timeout-ms cannot exceed 300000ms (5 minutes)")
+
+              :else
+              (try
+                (format-tool-result
+                  (with-socket-timeout timeout-ms
+                    #(eval-clojure-code code)))
+                (catch java.net.SocketTimeoutException e
+                  (format-tool-error
+                    (str "Evaluation timed out after " timeout-ms "ms. "
+                         "Try increasing timeout-ms to " (* 2 timeout-ms) "ms or higher."))))))))
 
       "load-file"
       (with-required-param arguments "file-path" "loading file"
         (fn [file-path]
           (if (fs/exists? file-path)
-            (format-tool-result
-              (eval-clojure-code (build-load-file-code file-path))
-              :default-message (str "Successfully loaded file: " file-path))
+            (let [timeout-ms (get arguments "timeout-ms" 2000)]
+              (cond
+                (not (number? timeout-ms))
+                (format-tool-error "timeout-ms must be a number")
+
+                (< timeout-ms 100)
+                (format-tool-error "timeout-ms must be at least 100ms")
+
+                (> timeout-ms 300000)
+                (format-tool-error "timeout-ms cannot exceed 300000ms (5 minutes)")
+
+                :else
+                (try
+                  (format-tool-result
+                    (with-socket-timeout timeout-ms
+                      #(eval-clojure-code (build-load-file-code file-path)))
+                    :default-message (str "Successfully loaded file: " file-path))
+                  (catch java.net.SocketTimeoutException e
+                    (format-tool-error
+                      (str "File loading timed out after " timeout-ms "ms. "
+                           "Try increasing timeout-ms to " (* 2 timeout-ms) "ms or higher."))))))
             (format-tool-error (str "Error: File not found: " file-path)))))
 
       "set-namespace"

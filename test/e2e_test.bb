@@ -287,3 +287,38 @@
           result (get-result-text expand)]
       (color-print :green "✓ Macroexpand-1 tool works")
       (is (str/includes? result "(if x")))))
+
+(defn mcp-eval-with-timeout [id code timeout-ms]
+  {"jsonrpc" "2.0"
+   "id" id
+   "method" "tools/call"
+   "params" {"name" "eval-clojure"
+             "arguments" {"code" code
+                         "timeout-ms" timeout-ms}}})
+
+(defn mcp-load-file-with-timeout [id file-path timeout-ms]
+  {"jsonrpc" "2.0"
+   "id" id
+   "method" "tools/call"
+   "params" {"name" "load-file"
+             "arguments" {"file-path" file-path
+                         "timeout-ms" timeout-ms}}})
+
+(deftest test-timeout-parameter-eval
+  (testing "Can specify custom timeout for eval-clojure"
+    (let [[init eval-resp] (run-mcp (mcp-initialize)
+                                    (mcp-eval-with-timeout 40 "(+ 1 1)" 10000))
+          result (get-result-text eval-resp)]
+      (color-print :green "✓ Custom timeout parameter works for eval-clojure")
+      (is (= "2" result)))))
+
+(deftest test-timeout-parameter-load-file
+  (testing "Can specify custom timeout for load-file"
+    (let [test-file "/tmp/test-e2e-timeout.clj"
+          _ (spit test-file "(ns test-timeout) (defn test-fn [] 42)")
+          [init load-resp] (run-mcp (mcp-initialize)
+                                    (mcp-load-file-with-timeout 41 test-file 10000))
+          result (get-result-text load-resp)]
+      (fs/delete test-file)
+      (color-print :green "✓ Custom timeout parameter works for load-file")
+      (is (some? result)))))

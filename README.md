@@ -222,12 +222,18 @@ MCP-nREPL provides 11 tools:
 
 **Code Execution:**
 - **eval-clojure** - Evaluate Clojure code expressions
-  - Parameters: `code` (string, required)
+  - Parameters:
+    - `code` (string, required) - The Clojure code to evaluate
+    - `timeout-ms` (number, optional) - Timeout in milliseconds (default: 2000ms)
   - Returns: Evaluation result, output, and any errors
+  - Increase timeout for long-running operations like complex computations
 - **load-file** - Load and evaluate a Clojure file
-  - Parameters: `file-path` (string, required)
+  - Parameters:
+    - `file-path` (string, required) - Path to the Clojure file to load
+    - `timeout-ms` (number, optional) - Timeout in milliseconds (default: 2000ms)
   - Returns: Success message or evaluation output
   - Validates file existence before loading
+  - Increase timeout for large files
 - **set-namespace** - Switch to a different namespace
   - Parameters: `namespace` (string, required)
   - Returns: Confirmation of namespace switch
