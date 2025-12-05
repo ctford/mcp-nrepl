@@ -11,6 +11,7 @@
 (def SERVER-INFO {:name "mcp-nrepl" :version "0.1.0"})
 (def MAX-REQUEST-SIZE 65536) ;; 64 KB - maximum JSON-RPC request size
 (def MAX-TIMEOUT-MS 300000) ;; 5 minutes - maximum timeout for eval operations
+(def DEFAULT-SOCKET-TIMEOUT-MS 2000) ;; 2 seconds - default socket read timeout
 
 ;; Global state
 (def state (atom {:nrepl-input-stream nil
@@ -64,7 +65,7 @@
     (let [socket (java.net.Socket. "localhost" port)
           input-stream (java.io.PushbackInputStream. (.getInputStream socket))
           output-stream (.getOutputStream socket)]
-      (.setSoTimeout socket 2000)
+      (.setSoTimeout socket DEFAULT-SOCKET-TIMEOUT-MS)
       {:input-stream input-stream
        :output-stream output-stream
        :socket socket})
