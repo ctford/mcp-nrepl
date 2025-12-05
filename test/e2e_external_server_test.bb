@@ -39,7 +39,7 @@
   (color-print :green "Switched to e2e namespace for test isolation"))
 
 ;; Load shared E2E test definitions
-(load-file "test/e2e_tests.bb")
+(load-file "test/e2e_test.bb")
 
 ;; Main test runner
 (defn run-all-tests []
