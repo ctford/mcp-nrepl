@@ -367,7 +367,7 @@
                     "arguments" {"search-term" "map"}})
           message-text (get-in result ["messages" 0 "content" "text"])]
       (is (str/includes? message-text "map"))
-      (is (str/includes? message-text "clojure://symbols/apropos/map")))))
+      (is (str/includes? message-text "the apropos tool")))))
 
 (deftest handle-prompts-get-validates-required-arguments
   (testing "define-and-test throws when function-name missing"

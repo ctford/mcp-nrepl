@@ -588,7 +588,7 @@
         {"description" "Debug an error systematically"
          "messages" [{"role" "user"
                       "content" {"type" "text"
-                                 "text" (str "I'm getting an error with this code: " error-code "\n\nPlease help me debug this by:\n1. Running the code with eval-clojure to capture the full error message\n2. Analyzing the error type and message\n3. If the error mentions specific functions, search for them using clojure://symbols/apropos/{function-name}\n4. Show me documentation for relevant functions using clojure://doc/{symbol}\n5. Suggest what might be wrong and how to fix it\n\nThis systematic approach will help me understand and resolve the error.")}}]})
+                                 "text" (str "I'm getting an error with this code: " error-code "\n\nPlease help me debug this by:\n1. Running the code with eval-clojure to capture the full error message\n2. Analyzing the error type and message\n3. If the error mentions specific functions, search for them using the apropos tool\n4. Show me documentation for relevant functions using the doc tool\n5. Suggest what might be wrong and how to fix it\n\nThis systematic approach will help me understand and resolve the error.")}}]})
 
       "search-and-learn"
       (let [search-term (get arguments "search-term")]
@@ -597,7 +597,7 @@
         {"description" (str "Learn about functions related to: " search-term)
          "messages" [{"role" "user"
                       "content" {"type" "text"
-                                 "text" (str "I want to learn about functions related to: " search-term "\n\nPlease help me:\n1. Search for symbols matching '" search-term "' using clojure://symbols/apropos/" search-term "\n2. Show me which namespaces these symbols come from\n3. Pick 2-3 of the most commonly used functions\n4. Get their documentation using clojure://doc/{symbol}\n5. If available, show me their source code using clojure://source/{symbol}\n\nThis will help me discover and understand relevant functions in the Clojure standard library.")}}]})
+                                 "text" (str "I want to learn about functions related to: " search-term "\n\nPlease help me:\n1. Search for symbols matching '" search-term "' using the apropos tool\n2. Show me which namespaces these symbols come from\n3. Pick 2-3 of the most commonly used functions\n4. Get their documentation using the doc tool\n5. If available, show me their source code using the source tool\n\nThis will help me discover and understand relevant functions in the Clojure standard library.")}}]})
 
       (throw (Exception. (str "Unknown prompt: " prompt-name))))))
 
