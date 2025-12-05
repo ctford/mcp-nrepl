@@ -1,351 +1,45 @@
 #!/usr/bin/env bb
 
 (ns e2e-external-server-test
-  (:require [clojure.test :refer [deftest is testing run-tests]]
+  (:require [clojure.test :refer [run-tests]]
             [cheshire.core :as json]
             [clojure.string :as str]
-            [clojure.java.shell :as shell]
-            [babashka.fs :as fs]
-            [babashka.process :as proc]))
+            [clojure.java.shell :as shell]))
 
 (load-file "test/test_utils.bb")
 (refer 'test-utils)
-
-;; MCP message builders
-(defn mcp-initialize []
-  {"jsonrpc" "2.0"
-   "id" 1
-   "method" "initialize"
-   "params" {"protocolVersion" "2024-11-05"
-             "capabilities" {}
-             "clientInfo" {"name" "e2e-external-server-test" "version" "1.0.0"}}})
-
-(defn mcp-eval [id code]
-  {"jsonrpc" "2.0"
-   "id" id
-   "method" "tools/call"
-   "params" {"name" "eval-clojure"
-             "arguments" {"code" code}}})
-
-(defn mcp-load-file [id file-path]
-  {"jsonrpc" "2.0"
-   "id" id
-   "method" "tools/call"
-   "params" {"name" "load-file"
-             "arguments" {"file-path" file-path}}})
-
-(defn mcp-set-namespace [id namespace]
-  {"jsonrpc" "2.0"
-   "id" id
-   "method" "tools/call"
-   "params" {"name" "set-namespace"
-             "arguments" {"namespace" namespace}}})
-
-(defn mcp-apropos [id query]
-  {"jsonrpc" "2.0"
-   "id" id
-   "method" "tools/call"
-   "params" {"name" "apropos"
-             "arguments" {"query" query}}})
-
-(defn mcp-get-doc [id symbol]
-  {"jsonrpc" "2.0"
-   "id" id
-   "method" "tools/call"
-   "params" {"name" "doc"
-             "arguments" {"symbol" symbol}}})
-
-(defn mcp-get-source [id symbol]
-  {"jsonrpc" "2.0"
-   "id" id
-   "method" "tools/call"
-   "params" {"name" "source"
-             "arguments" {"symbol" symbol}}})
-
-(defn mcp-get-vars
-  ([id]
-   (mcp-get-vars id nil))
-  ([id namespace]
-   {"jsonrpc" "2.0"
-    "id" id
-    "method" "tools/call"
-    "params" {"name" "vars"
-              "arguments" (if namespace
-                            {"namespace" namespace}
-                            {})}}))
-
-(defn mcp-get-loaded-namespaces [id]
-  {"jsonrpc" "2.0"
-   "id" id
-   "method" "tools/call"
-   "params" {"name" "loaded-namespaces"
-             "arguments" {}}})
-
-(defn mcp-get-current-namespace [id]
-  {"jsonrpc" "2.0"
-   "id" id
-   "method" "tools/call"
-   "params" {"name" "current-namespace"
-             "arguments" {}}})
-
-(defn mcp-prompts-list [id]
-  {"jsonrpc" "2.0"
-   "id" id
-   "method" "prompts/list"
-   "params" {}})
-
-(defn mcp-prompts-get [id prompt-name arguments]
-  {"jsonrpc" "2.0"
-   "id" id
-   "method" "prompts/get"
-   "params" {"name" prompt-name
-             "arguments" arguments}})
-
-(defn mcp-macroexpand-all [id code]
-  {"jsonrpc" "2.0"
-   "id" id
-   "method" "tools/call"
-   "params" {"name" "macroexpand-all"
-             "arguments" {"code" code}}})
-
-(defn mcp-macroexpand-1 [id code]
-  {"jsonrpc" "2.0"
-   "id" id
-   "method" "tools/call"
-   "params" {"name" "macroexpand-1"
-             "arguments" {"code" code}}})
-
-;; Test utilities
-(defn run-mcp [port & messages]
-  "Send JSON-RPC messages to mcp-nrepl and get parsed responses"
-  (let [input (str/join "\n" (map json/generate-string messages))
-        result (shell/sh "bb" "mcp-nrepl.bb" "--nrepl-port" (str port)
-                         :in input)]
-    (when (not= 0 (:exit result))
-      (throw (ex-info "MCP command failed" result)))
-    (mapv json/parse-string (str/split-lines (:out result)))))
-
-(defn get-result-text [response]
-  (get-in response ["result" "content" 0 "text"]))
 
 ;; Set up nREPL once before all tests
 (def nrepl-port
   "Port for nREPL server, set up once before all tests run"
   (setup-nrepl))
 
-;; Switch to e2e namespace for isolation from other test suites
-(let [[init set-ns-resp] (run-mcp nrepl-port
-                                  (mcp-initialize)
-                                  (mcp-set-namespace 999 "e2e-external"))]
+;; External server mode: Connect to existing nREPL server
+(defn run-mcp [& messages]
+  "Send JSON-RPC messages to mcp-nrepl connected to external nREPL server"
+  (let [port nrepl-port
+        input (str/join "\n" (map json/generate-string messages))
+        result (shell/sh "bb" "mcp-nrepl.bb" "--nrepl-port" (str port)
+                         :in input)]
+    (when (not= 0 (:exit result))
+      (throw (ex-info "MCP command failed" result)))
+    (mapv json/parse-string (str/split-lines (:out result)))))
+
+;; Connectionless eval test for external server mode
+(defn run-eval-mode-test []
+  "Test connectionless eval mode with external nREPL"
+  (let [result (shell/sh "bb" "mcp-nrepl.bb" "--nrepl-port" nrepl-port "--eval" "(+ 1 2 3)")]
+    (:out result)))
+
+;; Switch to e2e-external namespace for test isolation
+(let [[init set-ns-resp] (run-mcp {"jsonrpc" "2.0" "id" 1 "method" "initialize"
+                                   "params" {"protocolVersion" "2024-11-05" "capabilities" {}}}
+                                  {"jsonrpc" "2.0" "id" 999 "method" "tools/call"
+                                   "params" {"name" "set-namespace" "arguments" {"namespace" "e2e-external"}}})]
   (color-print :green "Switched to e2e namespace for test isolation"))
 
-;; E2E Tests
-(deftest test-mcp-initialization
-  (testing "MCP protocol initialization works"
-    (let [port nrepl-port
-          [response] (run-mcp port (mcp-initialize))]
-      (color-print :green "✓ MCP initialization successful")
-      (is (= "2024-11-05" (get-in response ["result" "protocolVersion"]))))))
-
-(deftest test-function-definition-and-invocation
-  (testing "Can define and invoke functions"
-    (let [port nrepl-port
-          [init define invoke] (run-mcp port
-                                         (mcp-initialize)
-                                         (mcp-eval 2 "(defn square [x] (* x x))")
-                                         (mcp-eval 3 "(square 7)"))
-          result (get-result-text invoke)]
-      (color-print :green "✓ Function invocation successful: square(7) = " result)
-      (is (= "49" result)))))
-
-(deftest test-error-handling
-  (testing "Error handling captures exceptions"
-    (let [port nrepl-port
-          [init error] (run-mcp port
-                                (mcp-initialize)
-                                (mcp-eval 5 "(/ 1 0)"))
-          error-text (get-result-text error)]
-      (color-print :green "✓ Error handling verified")
-      (is (str/includes? error-text "ArithmeticException")))))
-
-(deftest test-file-loading
-  (testing "Can load Clojure files"
-    (let [port nrepl-port
-          test-file "/tmp/test-e2e-file.clj"
-          _ (spit test-file "(ns test-ns)\n(defn double-it [x] (* x 2))")
-          [init load-resp test-resp] (run-mcp port
-                                              (mcp-initialize)
-                                              (mcp-load-file 11 test-file)
-                                              (mcp-eval 12 "(test-ns/double-it 5)"))
-          result (get-result-text test-resp)]
-      (fs/delete test-file)
-      (color-print :green "✓ File loading successful: test-ns/double-it(5) = " result)
-      (is (= "10" result)))))
-
-(deftest test-namespace-switching
-  (testing "Can switch namespaces"
-    (let [port nrepl-port
-          [init set-ns-resp get-ns-resp] (run-mcp port
-                                                   (mcp-initialize)
-                                                   (mcp-set-namespace 14 "clojure.set")
-                                                   (mcp-get-current-namespace 15))
-          current-ns (get-result-text get-ns-resp)]
-      (color-print :green "✓ Namespace switch successful: " current-ns)
-      (is (str/includes? current-ns "clojure.set")))))
-
-(deftest test-apropos
-  (testing "Can search for symbols"
-    (let [port nrepl-port
-          [init apropos-resp] (run-mcp port
-                                       (mcp-initialize)
-                                       (mcp-apropos 16 "map"))
-          result (get-result-text apropos-resp)]
-      (color-print :green "✓ Apropos search successful")
-      (is (str/includes? result "clojure.core/map")))))
-
-(deftest test-vars
-  (testing "Can list variables"
-    (let [port nrepl-port
-          [init define vars-resp] (run-mcp port
-                                           (mcp-initialize)
-                                           (mcp-eval 6 "(defn test-fn [] 42)")
-                                           (mcp-get-vars 7))
-          vars (get-result-text vars-resp)]
-      (color-print :green "✓ Vars listing successful")
-      (is (str/includes? vars "test-fn")))))
-
-(deftest test-vars-with-namespace
-  (testing "Can list variables from specific namespace"
-    (let [port nrepl-port
-          [init vars-resp] (run-mcp port
-                                    (mcp-initialize)
-                                    (mcp-get-vars 8 "clojure.set"))
-          vars (get-result-text vars-resp)]
-      (color-print :green "✓ Vars with namespace argument successful")
-      (is (str/includes? vars "union"))
-      (is (str/includes? vars "difference")))))
-
-(deftest test-loaded-namespaces
-  (testing "Can list loaded namespaces"
-    (let [port nrepl-port
-          [init ns-resp] (run-mcp port
-                                  (mcp-initialize)
-                                  (mcp-get-loaded-namespaces 10))
-          namespaces (get-result-text ns-resp)]
-      (color-print :green "✓ Loaded namespaces listing successful")
-      (is (str/includes? namespaces "user")))))
-
-(deftest test-doc-tool
-  (testing "Doc tool retrieval"
-    (let [port nrepl-port
-          [init doc-resp] (run-mcp port
-                                   (mcp-initialize)
-                                   (mcp-get-doc 11 "map"))
-          doc-text (get-result-text doc-resp)]
-      (color-print :green "✓ Doc tool retrieval successful")
-      (is (some? doc-text) "Doc tool should return content"))))
-
-(deftest test-source-tool
-  (testing "Source tool retrieval"
-    (let [port nrepl-port
-          [init source-resp] (run-mcp port
-                                      (mcp-initialize)
-                                      (mcp-get-source 12 "map"))
-          source-text (get-result-text source-resp)]
-      (color-print :green "✓ Source tool retrieval successful")
-      (is (some? source-text) "Source tool should return content"))))
-
-(deftest test-connectionless-eval-mode
-  (testing "Connectionless eval mode works"
-    (let [result (shell/sh "bb" "mcp-nrepl.bb" "--nrepl-port" nrepl-port "--eval" "(+ 1 2 3)")
-          output (str/trim (:out result))]
-      (color-print :green "✓ Connectionless eval works: (+ 1 2 3) = " output)
-      (is (= "6" output)))))
-
-(deftest test-persistent-connection
-  (testing "Persistent connection has no off-by-one bug"
-    (let [port nrepl-port
-          [init r1 r2 r3 r4] (run-mcp port
-                                      (mcp-initialize)
-                                      (mcp-eval 100 "(+ 1 1)")
-                                      (mcp-eval 101 "(+ 5 5)")
-                                      (mcp-eval 102 "(* 7 8)")
-                                      (mcp-eval 103 "(- 100 42)"))
-          results [(get-result-text r1)
-                   (get-result-text r2)
-                   (get-result-text r3)
-                   (get-result-text r4)]]
-      (color-print :green "✓ Persistent connection test passed")
-      (is (= ["2" "10" "56" "58"] results)))))
-
-(deftest test-prompts-capability
-  (testing "Initialization declares prompts capability"
-    (let [port nrepl-port
-          [response] (run-mcp port (mcp-initialize))
-          capabilities (get-in response ["result" "capabilities"])]
-      (color-print :green "✓ Prompts capability declared in initialization")
-      (is (contains? capabilities "prompts")))))
-
-(deftest test-prompts-list
-  (testing "Can list available prompts"
-    (let [port nrepl-port
-          [init list-resp] (run-mcp port
-                                    (mcp-initialize)
-                                    (mcp-prompts-list 20))
-          prompts (get-in list-resp ["result" "prompts"])]
-      (color-print :green "✓ Prompts list returned 5 prompts")
-      (is (= 5 (count prompts)))
-      (is (some #(= "explore-namespace" (get % "name")) prompts))
-      (is (some #(= "define-and-test" (get % "name")) prompts))
-      (is (some #(= "load-and-explore" (get % "name")) prompts))
-      (is (some #(= "debug-error" (get % "name")) prompts))
-      (is (some #(= "search-and-learn" (get % "name")) prompts)))))
-
-(deftest test-prompts-get-explore-namespace
-  (testing "Can get explore-namespace prompt (no arguments)"
-    (let [port nrepl-port
-          [init get-resp] (run-mcp port
-                                   (mcp-initialize)
-                                   (mcp-prompts-get 21 "explore-namespace" {}))
-          messages (get-in get-resp ["result" "messages"])]
-      (color-print :green "✓ explore-namespace prompt returned messages")
-      (is (= 1 (count messages)))
-      (is (= "user" (get-in messages [0 "role"])))
-      (is (str/includes? (get-in messages [0 "content" "text"])
-                         "current-namespace tool")))))
-
-(deftest test-prompts-get-with-arguments
-  (testing "Can get prompts with arguments"
-    (let [port nrepl-port
-          [init get-resp] (run-mcp port
-                                   (mcp-initialize)
-                                   (mcp-prompts-get 22 "define-and-test"
-                                                    {"function-name" "square"
-                                                     "function-code" "(defn square [x] (* x x))"}))
-          message-text (get-in get-resp ["result" "messages" 0 "content" "text"])]
-      (color-print :green "✓ define-and-test prompt interpolated arguments")
-      (is (str/includes? message-text "square"))
-      (is (str/includes? message-text "(defn square [x] (* x x))")))))
-
-(deftest test-macroexpand-all-tool
-  (testing "Can fully expand macros"
-    (let [port nrepl-port
-          [init expand] (run-mcp port
-                                 (mcp-initialize)
-                                 (mcp-macroexpand-all 30 "(when x y)"))
-          result (get-result-text expand)]
-      (color-print :green "✓ Macroexpand-all tool works")
-      (is (str/includes? result "(if x")))))
-
-(deftest test-macroexpand-1-tool
-  (testing "Can expand macro one step"
-    (let [port nrepl-port
-          [init expand] (run-mcp port
-                                 (mcp-initialize)
-                                 (mcp-macroexpand-1 31 "(when x y)"))
-          result (get-result-text expand)]
-      (color-print :green "✓ Macroexpand-1 tool works")
-      (is (str/includes? result "(if x")))))
+;; Load shared E2E test definitions
+(load-file "test/e2e_tests.bb")
 
 ;; Main test runner
 (defn run-all-tests []
