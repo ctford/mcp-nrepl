@@ -408,6 +408,16 @@
     :else
     nil))
 
+(defn timeout-error-message
+  "Generate timeout error message with helpful suggestion that respects maximum timeout"
+  [operation timeout-ms]
+  (let [max-timeout 300000
+        suggested-timeout (min max-timeout (* 2 timeout-ms))]
+    (str operation " timed out after " timeout-ms "ms. "
+         (if (>= timeout-ms 150000)
+           "Timeout is already at or near maximum (300000ms)."
+           (str "Try increasing timeout-ms to " suggested-timeout "ms or higher.")))))
+
 (defn handle-tools-call [params]
   (let [tool-name (get params "name")
         arguments (get params "arguments" {})]
@@ -423,9 +433,7 @@
                   (with-socket-timeout timeout-ms
                     #(eval-clojure-code code)))
                 (catch java.net.SocketTimeoutException e
-                  (format-tool-error
-                    (str "Evaluation timed out after " timeout-ms "ms. "
-                         "Try increasing timeout-ms to " (* 2 timeout-ms) "ms or higher."))))))))
+                  (format-tool-error (timeout-error-message "Evaluation" timeout-ms))))))))
 
       "load-file"
       (with-required-param arguments "file-path" "loading file"
@@ -440,9 +448,7 @@
                       #(eval-clojure-code (build-load-file-code file-path)))
                     :default-message (str "Successfully loaded file: " file-path))
                   (catch java.net.SocketTimeoutException e
-                    (format-tool-error
-                      (str "File loading timed out after " timeout-ms "ms. "
-                           "Try increasing timeout-ms to " (* 2 timeout-ms) "ms or higher."))))))
+                    (format-tool-error (timeout-error-message "File loading" timeout-ms))))))
             (format-tool-error (str "Error: File not found: " file-path)))))
 
       "set-namespace"
