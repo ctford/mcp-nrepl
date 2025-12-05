@@ -392,6 +392,22 @@
           format-tool-result
           (get-in ["content" 0 "text"])))
 
+(defn validate-timeout-ms
+  "Validate timeout-ms parameter. Returns error string if invalid, nil if valid."
+  [timeout-ms]
+  (cond
+    (not (number? timeout-ms))
+    "timeout-ms must be a number"
+
+    (< timeout-ms 100)
+    "timeout-ms must be at least 100ms"
+
+    (> timeout-ms 300000)
+    "timeout-ms cannot exceed 300000ms (5 minutes)"
+
+    :else
+    nil))
+
 (defn handle-tools-call [params]
   (let [tool-name (get params "name")
         arguments (get params "arguments" {})]
@@ -400,17 +416,8 @@
       (with-required-param arguments "code" "evaluating Clojure code"
         (fn [code]
           (let [timeout-ms (get arguments "timeout-ms" 2000)]
-            (cond
-              (not (number? timeout-ms))
-              (format-tool-error "timeout-ms must be a number")
-
-              (< timeout-ms 100)
-              (format-tool-error "timeout-ms must be at least 100ms")
-
-              (> timeout-ms 300000)
-              (format-tool-error "timeout-ms cannot exceed 300000ms (5 minutes)")
-
-              :else
+            (if-let [error (validate-timeout-ms timeout-ms)]
+              (format-tool-error error)
               (try
                 (format-tool-result
                   (with-socket-timeout timeout-ms
@@ -425,17 +432,8 @@
         (fn [file-path]
           (if (fs/exists? file-path)
             (let [timeout-ms (get arguments "timeout-ms" 2000)]
-              (cond
-                (not (number? timeout-ms))
-                (format-tool-error "timeout-ms must be a number")
-
-                (< timeout-ms 100)
-                (format-tool-error "timeout-ms must be at least 100ms")
-
-                (> timeout-ms 300000)
-                (format-tool-error "timeout-ms cannot exceed 300000ms (5 minutes)")
-
-                :else
+              (if-let [error (validate-timeout-ms timeout-ms)]
+                (format-tool-error error)
                 (try
                   (format-tool-result
                     (with-socket-timeout timeout-ms
