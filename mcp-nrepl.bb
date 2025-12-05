@@ -12,11 +12,6 @@
 (def MAX-REQUEST-SIZE 65536) ;; 64 KB - maximum JSON-RPC request size
 (def MAX-TIMEOUT-MS 300000) ;; 5 minutes - maximum timeout for eval operations
 
-;; Resource URI prefixes
-(def DOC-URI-PREFIX "clojure://doc/")
-(def SOURCE-URI-PREFIX "clojure://source/")
-(def APROPOS-URI-PREFIX "clojure://symbols/apropos/")
-
 ;; Global state
 (def state (atom {:nrepl-input-stream nil
                   :nrepl-output-stream nil
