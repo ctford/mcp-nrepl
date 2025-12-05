@@ -437,6 +437,104 @@
       (is (true? (:ok? result)))
       (is (str/includes? (:exit-message result) "mcp-nrepl")))))
 
+;; Test comprehensive CLI flag combinations
+(deftest validate-args-handles-all-flag-combinations
+  (testing "Valid flag combinations"
+    (testing "--bridge with --eval works"
+      (let [result (mcp-nrepl/validate-args ["--bridge" "--eval" "(+ 1 2)"])]
+        (is (true? (get-in result [:options :bridge])))
+        (is (= "(+ 1 2)" (get-in result [:options :eval])))))
+
+    (testing "--server with --eval works"
+      (let [result (mcp-nrepl/validate-args ["--server" "--eval" "(+ 1 2)"])]
+        (is (true? (get-in result [:options :server])))
+        (is (= "(+ 1 2)" (get-in result [:options :eval])))))
+
+    (testing "--bridge with --nrepl-port and --eval works"
+      (let [result (mcp-nrepl/validate-args ["--bridge" "--nrepl-port" "1667" "--eval" "(+ 1 2)"])]
+        (is (true? (get-in result [:options :bridge])))
+        (is (= 1667 (get-in result [:options :nrepl-port])))
+        (is (= "(+ 1 2)" (get-in result [:options :eval])))))
+
+    (testing "Short flags work: -b -p PORT"
+      (let [result (mcp-nrepl/validate-args ["-b" "-p" "8080"])]
+        (is (true? (get-in result [:options :bridge])))
+        (is (= 8080 (get-in result [:options :nrepl-port])))))
+
+    (testing "Short flags work: -s -e CODE"
+      (let [result (mcp-nrepl/validate-args ["-s" "-e" "(+ 1 1)"])]
+        (is (true? (get-in result [:options :server])))
+        (is (= "(+ 1 1)" (get-in result [:options :eval])))))
+
+    (testing "--nrepl-port without --bridge works (implicit bridge)"
+      (let [result (mcp-nrepl/validate-args ["--nrepl-port" "9999"])]
+        (is (= 9999 (get-in result [:options :nrepl-port])))
+        (is (nil? (get-in result [:options :bridge])))))
+
+    (testing "--eval alone works (implicit bridge)"
+      (let [result (mcp-nrepl/validate-args ["--eval" "(println 'test)"])]
+        (is (= "(println 'test)" (get-in result [:options :eval])))
+        (is (nil? (get-in result [:options :bridge]))))))
+
+  (testing "Invalid flag combinations (mutual exclusivity)"
+    (testing "--bridge and --server together fails"
+      (let [result (mcp-nrepl/validate-args ["--bridge" "--server"])]
+        (is (contains? result :exit-message))
+        (is (str/includes? (:exit-message result) "Cannot specify both --bridge and --server"))
+        (is (nil? (:ok? result)))))
+
+    (testing "--server and --bridge together fails (reversed order)"
+      (let [result (mcp-nrepl/validate-args ["--server" "--bridge"])]
+        (is (contains? result :exit-message))
+        (is (str/includes? (:exit-message result) "Cannot specify both --bridge and --server"))))
+
+    (testing "--bridge --server with --eval fails"
+      (let [result (mcp-nrepl/validate-args ["--bridge" "--server" "--eval" "(+ 1 2)"])]
+        (is (contains? result :exit-message))
+        (is (str/includes? (:exit-message result) "Cannot specify both --bridge and --server"))))
+
+    (testing "--bridge --server with --nrepl-port fails"
+      (let [result (mcp-nrepl/validate-args ["--bridge" "--server" "--nrepl-port" "1667"])]
+        (is (contains? result :exit-message))
+        (is (str/includes? (:exit-message result) "Cannot specify both --bridge and --server"))))
+
+    (testing "Short flags -b -s together fails"
+      (let [result (mcp-nrepl/validate-args ["-b" "-s"])]
+        (is (contains? result :exit-message))
+        (is (str/includes? (:exit-message result) "Cannot specify both --bridge and --server")))))
+
+  (testing "Invalid port numbers with various flags"
+    (testing "--bridge with non-numeric port fails"
+      (let [result (mcp-nrepl/validate-args ["--bridge" "--nrepl-port" "not-a-number"])]
+        (is (contains? result :exit-message))
+        (is (str/includes? (:exit-message result) "Must be a valid port number"))))
+
+    (testing "--server with non-numeric port fails"
+      (let [result (mcp-nrepl/validate-args ["--server" "--nrepl-port" "abc"])]
+        (is (contains? result :exit-message))
+        (is (str/includes? (:exit-message result) "Must be a valid port number"))))
+
+    (testing "Non-numeric port alone fails"
+      (let [result (mcp-nrepl/validate-args ["--nrepl-port" "invalid"])]
+        (is (contains? result :exit-message))
+        (is (str/includes? (:exit-message result) "Must be a valid port number"))))
+
+    (testing "Empty port value fails"
+      (let [result (mcp-nrepl/validate-args ["--nrepl-port" ""])]
+        (is (contains? result :exit-message))
+        (is (str/includes? (:exit-message result) "Must be a valid port number")))))
+
+  (testing "Unknown flags"
+    (testing "Unknown flag produces error"
+      (let [result (mcp-nrepl/validate-args ["--unknown-flag"])]
+        (is (contains? result :exit-message))
+        (is (str/includes? (:exit-message result) "Unknown option"))))
+
+    (testing "Unknown flag with valid flags produces error"
+      (let [result (mcp-nrepl/validate-args ["--bridge" "--fake-option"])]
+        (is (contains? result :exit-message))
+        (is (str/includes? (:exit-message result) "Unknown option"))))))
+
 ;; Main test runner
 (defn run-all-tests []
   (println "Running unit tests for pure functions...")
