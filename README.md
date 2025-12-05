@@ -288,7 +288,7 @@ MCP-nREPL provides 11 tools:
 
 ## Built With AI
 
-MCP-nREPL was built with [Claude Code](https://claude.com/claude-code), an AI-powered coding assistant. If you're looking for an MCP server, I assume you're comfortable with AI assistance in development.
+MCP-nREPL was built with [Claude Code](https://claude.com/claude-code), an AI-powered coding assistant. In fact, I adopted a creative constraint that I would never edit by hand. If you're looking for an MCP server, I assume you're comfortable with AI assistance in development.
 
 ## Contributing
 
