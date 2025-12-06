@@ -62,10 +62,10 @@
 
 ;; Test tools list contains all expected tools with correct schemas
 (deftest tools-list-contains-all-expected-tools-with-correct-schemas
-  (testing "Tools list includes all 11 tools (eval, load, set-namespace, get-doc, get-source, apropos, session tools, macroexpand)"
+  (testing "Tools list includes all 12 tools (eval, load, set-namespace, get-doc, get-source, apropos, session tools, macroexpand, restart)"
     (let [result (mcp-nrepl/handle-tools-list)
           tools (get result "tools")]
-      (is (= 11 (count tools)) "Should have 11 tools")
+      (is (= 12 (count tools)) "Should have 12 tools")
       (is (some #(= "eval-clojure" (get % "name")) tools))
       (is (some #(= "load-file" (get % "name")) tools))
       (is (some #(= "set-namespace" (get % "name")) tools))
@@ -76,7 +76,8 @@
       (is (some #(= "loaded-namespaces" (get % "name")) tools))
       (is (some #(= "current-namespace" (get % "name")) tools))
       (is (some #(= "macroexpand-all" (get % "name")) tools))
-      (is (some #(= "macroexpand-1" (get % "name")) tools)))))
+      (is (some #(= "macroexpand-1" (get % "name")) tools))
+      (is (some #(= "restart-nrepl-server" (get % "name")) tools)))))
 
 ;; Test resources list is now empty (all migrated to tools)
 (deftest resources-list-is-empty

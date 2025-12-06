@@ -120,6 +120,46 @@
           ;; Initialize print limits after session is created
           (initialize-print-limits))))))
 
+(defn restart-nrepl-server []
+  "Restart the embedded nREPL server. Only works in --server mode.
+   Stops the current server, closes connections, starts a new server,
+   and re-establishes connections. This kills any stuck threads."
+  (let [{:keys [embedded-server]} @state]
+    (if-not embedded-server
+      (throw (Exception. "restart-nrepl-server only works in --server mode (use --server flag)"))
+      (try
+        ;; Close current connections
+        (when-let [in (:nrepl-input-stream @state)]
+          (try (.close in) (catch Exception _)))
+        (when-let [out (:nrepl-output-stream @state)]
+          (try (.close out) (catch Exception _)))
+        (when-let [socket (:nrepl-socket @state)]
+          (try (.close socket) (catch Exception _)))
+
+        ;; Stop the embedded server
+        (nrepl-server/stop-server! embedded-server)
+
+        ;; Clear connection state
+        (swap! state assoc
+               :nrepl-input-stream nil
+               :nrepl-output-stream nil
+               :nrepl-socket nil
+               :session-id nil
+               :embedded-server nil
+               :nrepl-port nil)
+
+        ;; Start new embedded server
+        (let [new-server (nrepl-server/start-server! {:host "localhost" :port 0 :quiet true})
+              new-port (.getLocalPort (:socket new-server))]
+          (swap! state assoc :embedded-server new-server :nrepl-port new-port)
+
+          ;; Re-establish connection and initialize
+          (ensure-nrepl-connection)
+
+          (format "nREPL server restarted successfully on port %d" new-port))
+        (catch Exception e
+          (throw (Exception. (str "Failed to restart nREPL server: " (.getMessage e)))))))))
+
 (defn with-socket-timeout
   "Temporarily set socket timeout, execute function, then restore original timeout"
   [timeout-ms f]
@@ -389,7 +429,12 @@
       "properties"
       {"code" {"type" "string"
                "description" "The Clojure expression to expand one step (e.g., \"(when x y)\")"}}
-      "required" ["code"]}}]})
+      "required" ["code"]}}
+    {"name" "restart-nrepl-server"
+     "description" "Restart the embedded nREPL server (--server mode only). Stops the current server, kills any stuck threads, and starts a fresh server on a new port. Note: vars and namespaces persist (they're in the process memory). Use this to recover from infinite sequences, stuck threads, or other hangs."
+     "inputSchema"
+     {"type" "object"
+      "properties" {}}}]})
 
 ;; Code generation and resource helpers
 (defn build-load-file-code
@@ -437,11 +482,14 @@
 (defn timeout-error-message
   "Generate timeout error message with helpful suggestion that respects maximum timeout"
   [operation timeout-ms]
-  (let [suggested-timeout (min MAX-TIMEOUT-MS (* 2 timeout-ms))]
+  (let [suggested-timeout (min MAX-TIMEOUT-MS (* 2 timeout-ms))
+        {:keys [embedded-server]} @state
+        restart-suggestion (when embedded-server
+                            " If the server is stuck (e.g., infinite sequence), use restart-nrepl-server tool to recover.")]
     (str operation " timed out after " timeout-ms "ms. "
          (if (>= timeout-ms (/ MAX-TIMEOUT-MS 2))
-           (str "Timeout is already at or near maximum (" MAX-TIMEOUT-MS "ms).")
-           (str "Try increasing timeout-ms to " suggested-timeout "ms or higher.")))))
+           (str "Timeout is already at or near maximum (" MAX-TIMEOUT-MS "ms)." restart-suggestion)
+           (str "Try increasing timeout-ms to " suggested-timeout "ms or higher." restart-suggestion)))))
 
 (defn handle-tools-call [params]
   (let [tool-name (get params "name")
@@ -531,6 +579,13 @@
         (fn [code]
           (format-tool-result
             (eval-nrepl-code (build-macroexpand-1-code code)))))
+
+      "restart-nrepl-server"
+      (try
+        (let [result (restart-nrepl-server)]
+          (format-tool-result [] :default-message result))
+        (catch Exception e
+          (format-tool-error (.getMessage e))))
 
       (format-tool-error (str "Unknown tool: " tool-name)))))
 

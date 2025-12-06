@@ -472,6 +472,47 @@
       (is has-init-function "initialize-print-limits function should be defined")
       (is has-init-call "initialize-print-limits should be called in ensure-nrepl-connection"))))
 
+;; Restart Tool Tests
+
+(deftest test-restart-tool-listed
+  (testing "restart-nrepl-server tool is listed in tools/list"
+    (let [port "7888"
+          init-msg (make-init-msg 1)
+          list-msg (json/generate-string
+                    {"jsonrpc" "2.0"
+                     "id" 2
+                     "method" "tools/list"
+                     "params" {}})
+          input (str init-msg "\n" list-msg)
+          result (run-mcp-with-input port input)
+          output (:out result)
+          lines (str/split-lines output)]
+      (color-print :green "✓ Restart tool listing test completed")
+      (is (>= (count lines) 2) "Should get at least 2 responses")
+      (let [response (json/parse-string (second lines))
+            tools (get-in response ["result" "tools"])
+            restart-tool (first (filter #(= "restart-nrepl-server" (get % "name")) tools))]
+        (is (some? restart-tool) "restart-nrepl-server should be in tools list")
+        (when restart-tool
+          (is (str/includes? (get restart-tool "description") "--server mode only")
+              "Tool description should mention --server mode only")
+          (is (str/includes? (get restart-tool "description") "stuck threads")
+              "Tool description should mention killing stuck threads"))))))
+
+(deftest test-restart-tool-fails-in-bridge-mode
+  (testing "restart-nrepl-server errors appropriately in bridge mode"
+    (let [port "7888"
+          restart-msg (make-tool-call-msg 2 "restart-nrepl-server" {})
+          [init-resp restart-resp] (run-mcp port
+                                            (mcp-initialize)
+                                            (json/parse-string restart-msg))
+          has-error (get-in restart-resp ["result" "isError"])
+          result-text (get-in restart-resp ["result" "content" 0 "text"])]
+      (color-print :green "✓ Restart tool bridge mode error test completed")
+      (is has-error "Should return error when called in bridge mode")
+      (is (str/includes? result-text "--server mode")
+          "Error message should mention --server mode requirement"))))
+
 ;; Main test runner
 (defn run-all-tests []
   (color-print :yellow "Starting misuse tests for mcp-nrepl...")
