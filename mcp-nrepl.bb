@@ -12,6 +12,8 @@
 (def MAX-REQUEST-SIZE 65536) ;; 64 KB - maximum JSON-RPC request size
 (def MAX-TIMEOUT-MS 300000) ;; 5 minutes - maximum timeout for eval operations
 (def DEFAULT-SOCKET-TIMEOUT-MS 2000) ;; 2 seconds - default socket read timeout
+(def PRINT-LENGTH 100) ;; Limit printed sequence elements to prevent infinite seq hangs
+(def PRINT-LEVEL 10) ;; Limit nested structure depth to prevent deeply nested explosions
 
 ;; Global state
 (def state (atom {:nrepl-input-stream nil
@@ -102,6 +104,9 @@
       (some-> (read-nrepl-response)
               (get "new-session")))))
 
+;; Forward declaration - defined after collect-nrepl-responses
+(declare initialize-print-limits)
+
 (defn ensure-nrepl-connection []
   (when-not (:nrepl-input-stream @state)
     (when-let [port (or (:nrepl-port @state) (read-nrepl-port))]
@@ -111,7 +116,9 @@
                :nrepl-output-stream output-stream
                :nrepl-socket socket)
         (when-let [session-id (create-session)]
-          (swap! state assoc :session-id session-id))))))
+          (swap! state assoc :session-id session-id)
+          ;; Initialize print limits after session is created
+          (initialize-print-limits))))))
 
 (defn with-socket-timeout
   "Temporarily set socket timeout, execute function, then restore original timeout"
@@ -140,6 +147,28 @@
           updated-responses
           (recur updated-responses)))
       responses)))
+
+(defn initialize-print-limits []
+  "Set safe print defaults to prevent infinite sequence hangs.
+   Uses set! to bind in the nREPL session."
+  (try
+    (let [{:keys [session-id]} @state
+          init-code (str "(do "
+                        "(set! *print-length* " PRINT-LENGTH ") "
+                        "(set! *print-level* " PRINT-LEVEL ") "
+                        "nil)")
+          msg {"op" "eval"
+               "code" init-code
+               "session" session-id
+               "id" (str (java.util.UUID/randomUUID))}]
+      (when (send-nrepl-message msg)
+        ;; Consume responses but don't return them (silent initialization)
+        (collect-nrepl-responses)
+        true))
+    (catch Exception e
+      ;; Fail gracefully - log but don't block connection
+      (log-error "Failed to initialize print limits: %s" (.getMessage e))
+      false)))
 
 (defn eval-nrepl-code
   "Evaluate code via nREPL and return all responses.
