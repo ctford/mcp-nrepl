@@ -159,7 +159,7 @@
           ;; Re-establish connection and initialize
           (ensure-nrepl-connection)
 
-          (format "nREPL server restarted successfully on port %d" new-port))
+          "nREPL server restarted successfully")
         (catch Exception e
           (throw (Exception. (str "Failed to restart nREPL server: " (.getMessage e)))))))))
 

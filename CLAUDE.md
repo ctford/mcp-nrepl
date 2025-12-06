@@ -207,7 +207,7 @@ MCP-nREPL provides 12 tools for interacting with the nREPL session:
   - Use this to recover from infinite sequences, stuck computations, or other hangs
   - Note: vars and namespaces persist (they're in the process memory)
   - Only works in --server mode (not --bridge mode)
-  - Returns: Success message with new port number
+  - Returns: Success message
 
 ## Project Structure
 
