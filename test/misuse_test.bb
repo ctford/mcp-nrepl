@@ -536,7 +536,7 @@
           test-msg (json/parse-string
                     (make-tool-call-msg 3 "eval-clojure"
                                        {"code" "(+ 1 2 3)"
-                                        "timeout-ms" 1000}))
+                                        "timeout-ms" 300}))
 
           ;; Restart the server to recover
           restart-msg (json/parse-string (make-tool-call-msg 4 "restart-nrepl-server" {}))
@@ -580,14 +580,14 @@
           ;; Long operation that may cause issues
           long-comp-msg (json/parse-string
                          (make-tool-call-msg 2 "eval-clojure"
-                                            {"code" "(Thread/sleep 5000)"
-                                             "timeout-ms" 500}))
+                                            {"code" "(Thread/sleep 2000)"
+                                             "timeout-ms" 250}))
 
           ;; Try another eval
           test-msg (json/parse-string
                     (make-tool-call-msg 3 "eval-clojure"
                                        {"code" "(* 7 7)"
-                                        "timeout-ms" 1000}))
+                                        "timeout-ms" 300}))
 
           ;; Restart the server to recover
           restart-msg (json/parse-string (make-tool-call-msg 4 "restart-nrepl-server" {}))
