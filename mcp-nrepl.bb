@@ -686,6 +686,9 @@
       (and (:bridge options) (:server options))
       {:exit-message "Error: Cannot specify both --bridge and --server. Choose one mode."}
 
+      (and (:server options) (:nrepl-port options))
+      {:exit-message "Error: Cannot specify both --server and --nrepl-port. Embedded server uses dynamic port allocation."}
+
       :else
       {:options options})))
 

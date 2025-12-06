@@ -422,6 +422,16 @@
       (is (contains? result :exit-message))
       (is (str/includes? (:exit-message result) "Cannot specify both --bridge and --server"))))
 
+  (testing "--server and --nrepl-port are mutually exclusive"
+    (let [result (mcp-nrepl/validate-args ["--server" "--nrepl-port" "1667"])]
+      (is (contains? result :exit-message))
+      (is (str/includes? (:exit-message result) "Cannot specify both --server and --nrepl-port"))))
+
+  (testing "Short flags -s and -p are mutually exclusive"
+    (let [result (mcp-nrepl/validate-args ["-s" "-p" "8080"])]
+      (is (contains? result :exit-message))
+      (is (str/includes? (:exit-message result) "Cannot specify both --server and --nrepl-port"))))
+
   (testing "--server alone works correctly"
     (let [result (mcp-nrepl/validate-args ["--server"])]
       (is (= {:options {:server true}} result))
