@@ -236,6 +236,19 @@ bb mcp-nrepl.bb --eval "(+ 1 1)"
 echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | bb mcp-nrepl.bb --bridge --nrepl-port 1667
 ```
 
+### Git Hooks
+Install the pre-commit hook to automatically run tests before each commit:
+```bash
+./install-git-hooks.sh
+```
+
+The pre-commit hook ensures all tests pass before allowing a commit. This prevents accidentally committing broken code and maintains code quality.
+
+To skip the hook for a specific commit (use sparingly):
+```bash
+git commit --no-verify
+```
+
 ### Code Quality
 - **Unit tests** verify pure function correctness
 - **E2E tests** ensure real-world functionality

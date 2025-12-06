@@ -206,6 +206,19 @@ The test suite includes:
 
 All test suites are written in Babashka for consistency and maintainability.
 
+### Git Hooks
+
+To ensure code quality, install the pre-commit hook that runs tests before each commit:
+
+```bash
+./install-git-hooks.sh
+```
+
+After installation, tests will run automatically before every commit. To skip the hook for a specific commit (not recommended):
+```bash
+git commit --no-verify
+```
+
 ## Protocol Support
 
 ### MCP Methods Implemented
