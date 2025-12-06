@@ -155,7 +155,7 @@ echo '{"jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": {"name": "lo
 
 ## Tools
 
-MCP-nREPL provides 11 tools for interacting with the nREPL session:
+MCP-nREPL provides 12 tools for interacting with the nREPL session:
 
 ### Code Execution Tools
 
@@ -199,6 +199,15 @@ MCP-nREPL provides 11 tools for interacting with the nREPL session:
 
 - **`current-namespace`** - Get the current default namespace in the REPL session
   - Returns: Current namespace name
+
+### Server Management Tools
+
+- **`restart-nrepl-server`** - Restart the embedded nREPL server (--server mode only)
+  - Stops the current server, kills any stuck threads, and starts a fresh server on a new port
+  - Use this to recover from infinite sequences, stuck computations, or other hangs
+  - Note: vars and namespaces persist (they're in the process memory)
+  - Only works in --server mode (not --bridge mode)
+  - Returns: Success message with new port number
 
 ## Project Structure
 

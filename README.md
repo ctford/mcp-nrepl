@@ -233,7 +233,7 @@ git commit --no-verify
 
 ### Available Tools
 
-MCP-nREPL provides 11 tools:
+MCP-nREPL provides 12 tools:
 
 **Code Execution:**
 - **eval-clojure** - Evaluate Clojure code expressions
@@ -284,6 +284,15 @@ MCP-nREPL provides 11 tools:
   - Returns: JSON array of namespace names
 - **current-namespace** - Get the current default namespace
   - Returns: Current namespace name
+
+**Server Management:**
+- **restart-nrepl-server** - Restart the embedded nREPL server (--server mode only)
+  - No parameters required
+  - Stops the current server, kills any stuck threads, and starts a fresh server on a new port
+  - Use this to recover from infinite sequences, stuck computations, or other hangs
+  - Note: vars and namespaces persist (they're in the process memory)
+  - Only works in --server mode (not --bridge mode)
+  - Returns: Success message with new port number
 
 ## Limitations
 
