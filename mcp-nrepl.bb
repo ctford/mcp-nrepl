@@ -12,8 +12,8 @@
 (def MAX-REQUEST-SIZE 65536) ;; 64 KB - maximum JSON-RPC request size
 (def MAX-TIMEOUT-MS 300000) ;; 5 minutes - maximum timeout for eval operations
 (def DEFAULT-SOCKET-TIMEOUT-MS 2000) ;; 2 seconds - default socket read timeout
-(def PRINT-LENGTH 100) ;; Limit printed sequence elements to prevent infinite seq hangs
-(def PRINT-LEVEL 10) ;; Limit nested structure depth to prevent deeply nested explosions
+(def PRINT-LENGTH 500) ;; Limit printed output size to prevent overwhelming mcp-nrepl with large results
+(def PRINT-LEVEL 20) ;; Limit nested structure depth to keep output manageable
 
 ;; Global state
 (def state (atom {:nrepl-input-stream nil
@@ -189,8 +189,10 @@
       responses)))
 
 (defn initialize-print-limits []
-  "Set safe print defaults to prevent infinite sequence hangs.
-   Uses set! to bind in the nREPL session."
+  "Set print limits to prevent overwhelming mcp-nrepl with large output.
+   Limits output size when nREPL evaluates large/infinite sequences.
+   Protects mcp-nrepl from memory issues when processing results.
+   Note: Does NOT prevent hangs - use restart-nrepl-server for that."
   (try
     (let [{:keys [session-id]} @state
           init-code (str "(do "

@@ -462,13 +462,13 @@
   (testing "Print limit constants are properly defined"
     ;; Load and check the mcp-nrepl.bb file directly
     (let [mcp-code (slurp "mcp-nrepl.bb")
-          has-print-length (str/includes? mcp-code "(def PRINT-LENGTH 100)")
-          has-print-level (str/includes? mcp-code "(def PRINT-LEVEL 10)")
+          has-print-length (str/includes? mcp-code "(def PRINT-LENGTH 500)")
+          has-print-level (str/includes? mcp-code "(def PRINT-LEVEL 20)")
           has-init-function (str/includes? mcp-code "(defn initialize-print-limits")
           has-init-call (str/includes? mcp-code "(initialize-print-limits)")]
       (color-print :green "✓ Print limits constants and initialization test completed")
-      (is has-print-length "PRINT-LENGTH constant should be defined as 100")
-      (is has-print-level "PRINT-LEVEL constant should be defined as 10")
+      (is has-print-length "PRINT-LENGTH constant should be defined as 500")
+      (is has-print-level "PRINT-LEVEL constant should be defined as 20")
       (is has-init-function "initialize-print-limits function should be defined")
       (is has-init-call "initialize-print-limits should be called in ensure-nrepl-connection"))))
 
