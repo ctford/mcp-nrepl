@@ -552,19 +552,21 @@
 
       ;; Check the responses
       (let [range-result (get-in range-resp ["result" "content" 0 "text"])
+            test-is-error (get-in test-resp ["result" "isError"])
             test-result (get-in test-resp ["result" "content" 0 "text"])
-            ;; Check if we're getting nil responses (sign of stuck server)
-            getting-nils (or (= "nil" (str range-result))
-                            (= "nil" (str test-result)))
             restart-success (not (get-in restart-resp ["result" "isError"]))
             restart-text (get-in restart-resp ["result" "content" 0 "text"])
             verify-result (get-in verify-resp ["result" "content" 0 "text"])]
 
-        ;; Document what we observe - server might get stuck and return nils
-        (when getting-nils
-          (println "  → Observed nil responses (server stuck/timeout scenario)"))
+        ;; (range) should complete quickly (print-length limited)
+        (is (some? range-result) "Should get result from (range)")
 
-        ;; Restart should work regardless
+        ;; The subsequent eval with short timeout should get proper timeout error
+        (is test-is-error "Should get error response when server is busy/stuck")
+        (is (str/includes? (str test-result) "timed out")
+            "Should get timeout error message, not nil response")
+
+        ;; Restart should work
         (is restart-success "Restart should succeed in --server mode")
         (is (str/includes? (str restart-text) "restarted successfully")
             "Restart should report success")
@@ -602,18 +604,23 @@
       (color-print :green "✓ Restart recovery from infinite computation test completed")
 
       ;; Check the responses
-      (let [timeout-result (get-in timeout-resp ["result" "content" 0 "text"])
+      (let [timeout-is-error (get-in timeout-resp ["result" "isError"])
+            timeout-result (get-in timeout-resp ["result" "content" 0 "text"])
+            test-is-error (get-in test-resp ["result" "isError"])
             test-result (get-in test-resp ["result" "content" 0 "text"])
-            ;; Check if we're getting nil responses (sign of stuck server)
-            getting-nils (or (= "nil" (str timeout-result))
-                            (= "nil" (str test-result)))
             restart-success (not (get-in restart-resp ["result" "isError"]))
             restart-text (get-in restart-resp ["result" "content" 0 "text"])
             verify-result (get-in verify-resp ["result" "content" 0 "text"])]
 
-        ;; Document what we observe
-        (when getting-nils
-          (println "  → Observed nil responses (server stuck with long computation)"))
+        ;; The long Thread/sleep should timeout with proper error message
+        (is timeout-is-error "Thread/sleep should timeout and return error")
+        (is (str/includes? (str timeout-result) "timed out")
+            "Should get timeout error message, not nil response")
+
+        ;; Subsequent eval might also timeout if server is still busy
+        (when test-is-error
+          (is (str/includes? (str test-result) "timed out")
+              "If subsequent eval times out, should get proper error message"))
 
         ;; Restart should work
         (is restart-success "Restart should succeed in --server mode")

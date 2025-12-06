@@ -94,6 +94,9 @@
           (do
             (log-error "Invalid nREPL response (not a map): %s" response)
             nil))))
+    (catch java.net.SocketTimeoutException e
+      ;; Let timeout exceptions propagate to be handled by with-socket-timeout caller
+      (throw e))
     (catch Exception e
       (log-error "Failed to read nREPL response: %s" (.getMessage e))
       nil)))
