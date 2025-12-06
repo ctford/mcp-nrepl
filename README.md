@@ -214,7 +214,9 @@ To ensure code quality, install the pre-commit hook that runs tests before each 
 ./install-git-hooks.sh
 ```
 
-After installation, tests will run automatically before every commit. To skip the hook for a specific commit (not recommended):
+After installation, tests will run automatically before every commit. The hook is version controlled in `.githooks/pre-commit`, so any updates automatically apply without re-installation.
+
+To skip the hook for a specific commit (not recommended):
 ```bash
 git commit --no-verify
 ```

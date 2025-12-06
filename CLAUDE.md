@@ -242,7 +242,7 @@ Install the pre-commit hook to automatically run tests before each commit:
 ./install-git-hooks.sh
 ```
 
-The pre-commit hook ensures all tests pass before allowing a commit. This prevents accidentally committing broken code and maintains code quality.
+The pre-commit hook ensures all tests pass before allowing a commit. This prevents accidentally committing broken code and maintains code quality. The hook itself is version controlled in `.githooks/pre-commit`, so updates to the hook automatically apply.
 
 To skip the hook for a specific commit (use sparingly):
 ```bash

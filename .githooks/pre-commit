@@ -1,0 +1,18 @@
+#!/bin/bash
+# Pre-commit hook for mcp-nrepl
+# Runs the full test suite before allowing a commit
+
+echo "Running pre-commit tests..."
+echo ""
+
+# Run the test suite
+if ! ./run-tests.sh; then
+  echo ""
+  echo "❌ Tests failed! Commit aborted."
+  echo "Fix the failing tests or use 'git commit --no-verify' to skip this check."
+  exit 1
+fi
+
+echo ""
+echo "✅ All tests passed! Proceeding with commit."
+exit 0
