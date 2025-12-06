@@ -513,6 +513,116 @@
       (is (str/includes? result-text "--server mode")
           "Error message should mention --server mode requirement"))))
 
+(defn run-mcp-server [& messages]
+  "Send JSON-RPC messages to mcp-nrepl in --server mode and get parsed responses"
+  (let [input (str/join "\n" (map json/generate-string messages))
+        result (shell/sh "bb" "mcp-nrepl.bb" "--server"
+                         :in input)]
+    (when (not= 0 (:exit result))
+      (throw (ex-info "MCP command failed" result)))
+    (mapv json/parse-string (str/split-lines (:out result)))))
+
+(deftest test-restart-recovers-from-infinite-sequence
+  (testing "restart-nrepl-server recovers from problematic evaluation (--server mode only)"
+    ;; This test demonstrates the hang-and-recover scenario:
+    ;; 1. Server gets stuck or has issues
+    ;; 2. We get nil/empty responses back (the symptom)
+    ;; 3. Restart fixes it
+    (let [init-msg (mcp-initialize)
+          ;; Try to evaluate infinite sequence
+          range-msg (mcp-eval 2 "(range)")
+
+          ;; Try another eval with short timeout
+          test-msg (json/parse-string
+                    (make-tool-call-msg 3 "eval-clojure"
+                                       {"code" "(+ 1 2 3)"
+                                        "timeout-ms" 1000}))
+
+          ;; Restart the server to recover
+          restart-msg (json/parse-string (make-tool-call-msg 4 "restart-nrepl-server" {}))
+
+          ;; Verify we can eval again after restart
+          verify-msg (mcp-eval 5 "(+ 1 2 3)")
+
+          ;; Run all operations
+          [init-resp range-resp test-resp restart-resp verify-resp]
+          (run-mcp-server init-msg range-msg test-msg restart-msg verify-msg)]
+
+      (color-print :green "✓ Restart recovery from infinite sequence test completed")
+
+      ;; Check the responses
+      (let [range-result (get-in range-resp ["result" "content" 0 "text"])
+            test-result (get-in test-resp ["result" "content" 0 "text"])
+            ;; Check if we're getting nil responses (sign of stuck server)
+            getting-nils (or (= "nil" (str range-result))
+                            (= "nil" (str test-result)))
+            restart-success (not (get-in restart-resp ["result" "isError"]))
+            restart-text (get-in restart-resp ["result" "content" 0 "text"])
+            verify-result (get-in verify-resp ["result" "content" 0 "text"])]
+
+        ;; Document what we observe - server might get stuck and return nils
+        (when getting-nils
+          (println "  → Observed nil responses (server stuck/timeout scenario)"))
+
+        ;; Restart should work regardless
+        (is restart-success "Restart should succeed in --server mode")
+        (is (str/includes? (str restart-text) "restarted successfully")
+            "Restart should report success")
+
+        ;; The key assertion: After restart, server MUST be functional again
+        (is (= "6" verify-result)
+            "Should be able to eval after restart (this is the critical recovery test)")))))
+
+(deftest test-restart-recovers-from-infinite-computation
+  (testing "restart-nrepl-server recovers after stuck computation (--server mode only)"
+    ;; Test restart works when server gets stuck with long/infinite computation
+    (let [init-msg (mcp-initialize)
+          ;; Long operation that may cause issues
+          long-comp-msg (json/parse-string
+                         (make-tool-call-msg 2 "eval-clojure"
+                                            {"code" "(Thread/sleep 5000)"
+                                             "timeout-ms" 500}))
+
+          ;; Try another eval
+          test-msg (json/parse-string
+                    (make-tool-call-msg 3 "eval-clojure"
+                                       {"code" "(* 7 7)"
+                                        "timeout-ms" 1000}))
+
+          ;; Restart the server to recover
+          restart-msg (json/parse-string (make-tool-call-msg 4 "restart-nrepl-server" {}))
+
+          ;; Verify functionality after restart
+          verify-msg (mcp-eval 5 "(* 7 7)")
+
+          [init-resp timeout-resp test-resp restart-resp verify-resp]
+          (run-mcp-server init-msg long-comp-msg test-msg restart-msg verify-msg)]
+
+      (color-print :green "✓ Restart recovery from infinite computation test completed")
+
+      ;; Check the responses
+      (let [timeout-result (get-in timeout-resp ["result" "content" 0 "text"])
+            test-result (get-in test-resp ["result" "content" 0 "text"])
+            ;; Check if we're getting nil responses (sign of stuck server)
+            getting-nils (or (= "nil" (str timeout-result))
+                            (= "nil" (str test-result)))
+            restart-success (not (get-in restart-resp ["result" "isError"]))
+            restart-text (get-in restart-resp ["result" "content" 0 "text"])
+            verify-result (get-in verify-resp ["result" "content" 0 "text"])]
+
+        ;; Document what we observe
+        (when getting-nils
+          (println "  → Observed nil responses (server stuck with long computation)"))
+
+        ;; Restart should work
+        (is restart-success "Restart should succeed in --server mode")
+        (is (str/includes? (str restart-text) "restarted successfully")
+            "Restart should report success with new port")
+
+        ;; The key assertion: After restart, server MUST work again
+        (is (= "49" verify-result)
+            "Should be able to eval correctly after restart (critical recovery test)")))))
+
 ;; Main test runner
 (defn run-all-tests []
   (color-print :yellow "Starting misuse tests for mcp-nrepl...")
