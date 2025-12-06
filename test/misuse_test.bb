@@ -577,10 +577,11 @@
   (testing "restart-nrepl-server recovers after stuck computation (--server mode only)"
     ;; Test restart works when server gets stuck with long/infinite computation
     (let [init-msg (mcp-initialize)
-          ;; Long operation that may cause issues
+          ;; Long operation that will definitely timeout (sleeps 60s, timeout 250ms)
+          ;; We're NOT waiting for the sleep - we timeout and move on immediately
           long-comp-msg (json/parse-string
                          (make-tool-call-msg 2 "eval-clojure"
-                                            {"code" "(Thread/sleep 2000)"
+                                            {"code" "(Thread/sleep 60000)"
                                              "timeout-ms" 250}))
 
           ;; Try another eval
