@@ -487,11 +487,11 @@
   (let [suggested-timeout (min MAX-TIMEOUT-MS (* 2 timeout-ms))
         {:keys [embedded-server]} @state
         restart-suggestion (when embedded-server
-                            " If the server is stuck (e.g., infinite sequence), use restart-nrepl-server tool to recover.")]
+                            " If the server appears stuck (repeated timeouts, nil responses, infinite sequence/computation), use restart-nrepl-server tool to recover.")]
     (str operation " timed out after " timeout-ms "ms. "
          (if (>= timeout-ms (/ MAX-TIMEOUT-MS 2))
            (str "Timeout is already at or near maximum (" MAX-TIMEOUT-MS "ms)." restart-suggestion)
-           (str "Try increasing timeout-ms to " suggested-timeout "ms or higher." restart-suggestion)))))
+           (str "For slow operations, try increasing timeout-ms to " suggested-timeout "ms or higher." restart-suggestion)))))
 
 (defn handle-tools-call [params]
   (let [tool-name (get params "name")
