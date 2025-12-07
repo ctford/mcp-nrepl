@@ -8,29 +8,13 @@ This is a minimal, fast Model Context Protocol (MCP) server implementation for n
 
 ## Overview
 
-This project provides a bridge between the Model Context Protocol and nREPL, allowing AI assistants and other MCP clients to execute Clojure code through an existing nREPL server. The implementation is designed to be minimal, fast, and readable while providing robust functionality.
+This project provides a bridge between AI assistants and nREPL using the Model Context Protocol. The implementation is designed to be minimal, fast, and readable while providing robust functionality.
 
 ## Features
 
-- **Dual Mode Operation**: MCP server mode + connectionless eval mode (`--eval` flag)
-- **Embedded Server**: Use `--server` flag to start with built-in nREPL server (no separate server needed)
-- **Minimal Dependencies**: Single Babashka script with no external dependencies
+- **Bridge Mode** (`--bridge`): Connects to an external nREPL server, such as you might get by using `lein repl` in your project
+- **Server Mode** (`--server`): Provides an embedded nREPL server, so you don't need a project to give an AI assistant the ability to execute Clojure
 - **Fast Execution**: ~30ms per evaluation
-- **MCP Compliant**: Implements core MCP protocol with tools and resources
-- **nREPL Integration**: Connects to existing nREPL servers (Babashka, Leiningen, Clojure CLI)
-- **Auto-Discovery**: Reads nREPL port from `.nrepl-port` file
-- **Rich Tooling**: Code eval, file loading, namespace switching, symbol search
-- **Session Introspection**: Resources for vars, namespaces, docs, and source
-
-## How It Works
-
-MCP-nREPL acts as a bridge between the Model Context Protocol and your nREPL session:
-
-- **Direct REPL Access**: Provides MCP clients (like Claude) with the ability to evaluate Clojure code in your running nREPL session
-- **Shared Session**: All evaluations happen in the same nREPL session, maintaining state between calls
-- **Development Tool**: Designed for interactive development workflows where you want AI assistance with Clojure code
-
-This is equivalent to giving an MCP client access to your REPL prompt - it can define functions, load files, switch namespaces, and evaluate any Clojure expression you could run yourself.
 
 ## Installation
 
@@ -39,7 +23,6 @@ For now, MCP-nREPL is distributed as a single, unversioned Babashka script with 
 ### 1. Prerequisites
 
 - **Babashka**: Install via `brew install borkdude/brew/babashka` (macOS) or see [babashka.org](https://babashka.org/) for other platforms
-- **nREPL Server**: Have an nREPL server running in your project (Leiningen, Babashka, Clojure CLI, etc.)
 
 ### 2. Download mcp-nrepl.bb
 
@@ -54,7 +37,7 @@ cd ~/.mcp-servers
 curl -O https://raw.githubusercontent.com/ctford/mcp-nrepl/main/mcp-nrepl.bb
 ```
 
-### 3a. Configure Project Mode e.g. Claude Code
+### 3a. Configure Bridge Mode e.g. Claude Code
 
 Create a `.mcp.json` file in your Clojure project root:
 
@@ -71,11 +54,7 @@ Create a `.mcp.json` file in your Clojure project root:
 }
 ```
 
-**Key advantages**:
-- `--bridge` explicitly indicates bridge mode (best practice)
-- The working directory is your project root, so `.nrepl-port` is automatically discovered
-- No need for `--nrepl-port` argument in typical workflows
-- Configuration is project-specific and can be checked into version control
+Note: The working directory is your project root, so `.nrepl-port` is automatically discovered (no need for `--nrepl-port` in typical workflows).
 
 **Start nREPL server**: In your project directory, start an nREPL server:
 ```bash
@@ -89,7 +68,7 @@ This creates a `.nrepl-port` file that mcp-nrepl will use to connect.
 
 **Restart Claude Code** to load the MCP server.
 
-### 3b. Configure Desktop Mode e.g. Claude Desktop
+### 3b. Configure Server Mode e.g. Claude Desktop
 
 If you prefer to use Claude Desktop instead, edit your Claude Desktop configuration file:
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
