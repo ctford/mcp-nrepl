@@ -187,8 +187,8 @@ git commit --no-verify
 - **initialize**: Protocol handshake and capability negotiation
 - **tools/list**: Returns available tools
 - **tools/call**: Executes tool operations
-- **resources/list**: Returns available resources
-- **resources/read**: Reads resource data
+- **resources/list**: Returns available resources (none implemented)
+- **resources/read**: Reads resource data (not applicable)
 
 ### Available Tools
 
