@@ -114,6 +114,8 @@ Claude should be able to connect to your nREPL session and execute code.
 - **initialize**: Protocol handshake that establishes nREPL connection
 - **tools/list**: Returns available tools
 - **tools/call**: Executes tool operations
+- **prompts/list**: Returns available prompts
+- **prompts/get**: Retrieves a specific prompt with its messages
 - **resources/list**: Returns available resources (none implemented)
 - **resources/read**: Reads resource data (not applicable)
 
@@ -179,6 +181,35 @@ MCP-nREPL provides 12 tools:
   - Note: vars and namespaces persist (they're in the process memory)
   - Only works in --server mode (not --bridge mode)
   - Returns: Success message
+
+### Available Prompts
+
+MCP-nREPL provides 5 prompts that guide AI assistants through common REPL workflows:
+
+- **explore-namespace** - Guide users through exploring their current REPL session state
+  - Arguments: None
+  - Helps discover what namespace you're in, what vars are defined, and their documentation
+
+- **define-and-test** - Guide proper function definition and testing workflow
+  - Arguments:
+    - `function-name` (string, required) - The name of the function to define
+    - `function-code` (string, required) - The complete function definition code
+  - Ensures functions are defined and tested before use
+
+- **load-and-explore** - Guide proper file loading and namespace exploration
+  - Arguments:
+    - `file-path` (string, required) - Path to the Clojure file to load
+  - Walks through loading a file, switching namespaces, and exploring what's available
+
+- **debug-error** - Guide systematic troubleshooting of errors
+  - Arguments:
+    - `error-code` (string, required) - The code that is producing an error
+  - Provides structured approach to understanding and fixing errors
+
+- **search-and-learn** - Guide discovering and learning about Clojure functions
+  - Arguments:
+    - `search-term` (string, required) - The term to search for in symbol names
+  - Helps discover relevant functions and understand their usage
 
 ## Security Considerations
 
