@@ -253,13 +253,6 @@ MCP-nREPL provides 12 tools:
   - Only works in --server mode (not --bridge mode)
   - Returns: Success message
 
-## Limitations
-
-- **Single Session**: No support for parallel nREPL sessions
-- **Local Only**: Only connects to localhost nREPL servers
-- **Synchronous**: No async operation support
-- **Basic nREPL**: Uses core eval operations, not advanced middleware ops like `info` or `complete`
-
 ## Security Considerations
 
 **MCP-nREPL grants full REPL access to AI assistants.** Before using this tool, understand the security implications:
