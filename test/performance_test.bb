@@ -17,7 +17,7 @@
 ;; Performance Tests
 
 (deftest test-eval-performance
-  (testing "Connectionless eval completes in reasonable time"
+  (testing "One-shot eval completes in reasonable time"
     (let [num-runs 5
           ;; Run evaluations and collect timing data
           run-results (reduce (fn [acc run-num]
@@ -66,7 +66,7 @@
 (defn run-all-tests []
   (color-print :yellow "Starting performance tests for mcp-nrepl...")
   (println)
-  (color-print :yellow "Testing connectionless eval mode performance...")
+  (color-print :yellow "Testing one-shot eval mode performance...")
   (println)
   (let [results (run-tests 'performance-test)]
     (println)

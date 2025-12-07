@@ -21,6 +21,7 @@ This is a minimal, fast Model Context Protocol (MCP) server implementation for n
 
 - **Bridge Mode** (`--bridge`): Connects to an external nREPL server, such as you might get by using `lein repl` in your project
 - **Server Mode** (`--server`): Provides an embedded nREPL server, so you don't need a project to give an AI assistant the ability to execute Clojure
+- **Eval Mode** (`--eval`): One-shot evaluation from the command line, works with either Bridge or Server mode, no MCP configuration needed
 - **Fast Execution**: ~30ms per evaluation
 
 ## Installation
@@ -99,6 +100,36 @@ Add the mcp-nrepl server with embedded server mode:
 Note: `"type": "stdio"` is optional (stdio is the default) but included for clarity.
 
 **Restart Claude Desktop** to load the MCP server.
+
+### 3c. Option three: Configure Eval Mode
+
+For quick one-shot evaluations without MCP configuration, use the `--eval` flag directly from the command line. This mode works with either Bridge or Server mode.
+
+**With external nREPL (Bridge Mode):**
+```bash
+# Start your project's nREPL server first
+lein repl  # or: bb nrepl-server
+
+# Then evaluate code (auto-discovers .nrepl-port)
+bb mcp-nrepl.bb --eval "(+ 1 2 3)"
+# Output: 6
+
+# Or specify port explicitly
+bb mcp-nrepl.bb --nrepl-port 1667 --eval "(+ 1 2 3)"
+```
+
+**With embedded nREPL (Server Mode):**
+```bash
+# No external server needed - starts embedded nREPL automatically
+bb mcp-nrepl.bb --server --eval "(+ 1 2 3)"
+# Output: 6
+```
+
+**Key advantages:**
+- No MCP configuration needed
+- Perfect for quick REPL experiments
+- Works from any directory
+- Combines with either `--bridge` or `--server`
 
 ### 4. Verify It's Working
 
@@ -247,7 +278,7 @@ bb nrepl-server
 
 This will start a Babashka nREPL server and write the port to `.nrepl-port`.
 
-### 2. Connectionless Eval Mode (Fastest)
+### 2. One-Shot Eval Mode (Fastest)
 
 Evaluate Clojure code directly from the command line:
 
@@ -292,9 +323,9 @@ Run the complete test suite (unit + E2E):
 
 The test suite includes:
 - **Unit Tests** (~1 second) - Pure functions with no side effects: MCP handlers, data transformation, error builders
-- **End-to-End Tests** (~5 seconds) - Full integration: MCP protocol, nREPL eval, resources, and connectionless eval mode
+- **End-to-End Tests** (~5 seconds) - Full integration: MCP protocol, nREPL eval, resources, and one-shot eval mode
 - **Misuse Tests** (~3 seconds) - Error handling: malformed JSON, invalid requests, missing nREPL server, malformed Clojure code
-- **Performance Tests** (~1 second) - Timing validation: connectionless eval mode completes under 200ms threshold
+- **Performance Tests** (~1 second) - Timing validation: one-shot eval mode completes under 200ms threshold
 
 All test suites are written in Babashka for consistency and maintainability.
 

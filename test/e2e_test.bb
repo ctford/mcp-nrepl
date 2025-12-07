@@ -209,11 +209,11 @@
       (color-print :green "✓ Source tool retrieval successful")
       (is (some? source-text) "Source tool should return content"))))
 
-(deftest test-connectionless-eval-mode
-  (testing "Connectionless eval mode works"
+(deftest test-one-shot-eval-mode
+  (testing "One-shot eval mode works"
     (let [result (run-eval-mode-test)
           output (str/trim result)]
-      (color-print :green "✓ Connectionless eval works: (+ 1 2 3) = " output)
+      (color-print :green "✓ One-shot eval works: (+ 1 2 3) = " output)
       (is (= "6" output)))))
 
 (deftest test-persistent-connection

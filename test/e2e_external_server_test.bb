@@ -25,9 +25,9 @@
       (throw (ex-info "MCP command failed" result)))
     (mapv json/parse-string (str/split-lines (:out result)))))
 
-;; Connectionless eval test for external server mode
+;; One-shot eval test for external server mode
 (defn run-eval-mode-test []
-  "Test connectionless eval mode with external nREPL"
+  "Test one-shot eval mode with external nREPL"
   (let [result (shell/sh "bb" "mcp-nrepl.bb" "--nrepl-port" nrepl-port "--eval" "(+ 1 2 3)")]
     (:out result)))
 

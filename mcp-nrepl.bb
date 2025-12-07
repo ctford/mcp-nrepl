@@ -733,7 +733,7 @@
     :validate [integer? "Must be a valid port number"]]
    ["-b" "--bridge" "Connect to external nREPL server (bridge mode)"]
    ["-s" "--server" "Start embedded nREPL server (no external server needed)"]
-   ["-e" "--eval CODE" "Evaluate Clojure code and print result (connectionless eval mode)"]
+   ["-e" "--eval CODE" "Evaluate Clojure code and print result (one-shot eval mode)"]
    ["-h" "--help" "Show this help message"]])
 
 (defn usage [options-summary]
@@ -786,7 +786,7 @@
       {:options options})))
 
 (defn run-eval-mode [code]
-  "Connectionless evaluation mode - evaluate code and print result to stdout"
+  "One-shot evaluation mode - evaluate code and print result to stdout"
   (try
     (let [responses (eval-clojure-code code)
           result (format-tool-result responses)
@@ -824,7 +824,7 @@
 
         ;; Check if we're in eval mode or MCP server mode
         (if-let [code (:eval options)]
-          ;; Connectionless eval mode - evaluate code and exit
+          ;; One-shot eval mode - evaluate code and exit
           (run-eval-mode code)
 
           ;; MCP server mode - read JSON-RPC messages from stdin

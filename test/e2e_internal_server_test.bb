@@ -23,9 +23,9 @@
          (filter #(str/starts-with? % "{"))
          (mapv json/parse-string))))
 
-;; Connectionless eval test for internal server mode
+;; One-shot eval test for internal server mode
 (defn run-eval-mode-test []
-  "Test connectionless eval mode with embedded nREPL server"
+  "Test one-shot eval mode with embedded nREPL server"
   (let [result (shell/sh "bb" "mcp-nrepl.bb" "--server" "--eval" "(+ 1 2 3)")
         ;; Filter out server startup message - take the last line
         output (str/trim (last (str/split-lines (:out result))))]
