@@ -54,7 +54,7 @@ cd ~/.mcp-servers
 curl -O https://raw.githubusercontent.com/ctford/mcp-nrepl/main/mcp-nrepl.bb
 ```
 
-### 3. Configure Claude Code
+### 3a. Configure Project Mode e.g. Claude Code
 
 Create a `.mcp.json` file in your Clojure project root:
 
@@ -77,13 +77,25 @@ Create a `.mcp.json` file in your Clojure project root:
 - No need for `--nrepl-port` argument in typical workflows
 - Configuration is project-specific and can be checked into version control
 
-### 3a. Alternative: Configure Claude Desktop
+**Start nREPL server**: In your project directory, start an nREPL server:
+```bash
+cd /path/to/your/clojure/project
+lein repl           # Leiningen
+# or: bb nrepl-server   # Babashka
+# or: clj -Sdeps '{:deps {nrepl/nrepl {:mvn/version "1.0.0"}}}' -X nrepl.cmdline/server
+```
+
+This creates a `.nrepl-port` file that mcp-nrepl will use to connect.
+
+**Restart Claude Code** to load the MCP server.
+
+### 3b. Configure Desktop Mode e.g. Claude Desktop
 
 If you prefer to use Claude Desktop instead, edit your Claude Desktop configuration file:
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
-Add the mcp-nrepl server with embedded server mode (recommended):
+Add the mcp-nrepl server with embedded server mode:
 
 ```json
 {
@@ -100,37 +112,9 @@ Add the mcp-nrepl server with embedded server mode (recommended):
 
 Note: `"type": "stdio"` is optional (stdio is the default) but included for clarity.
 
-**Alternative - External Server**: If you want to connect to an existing nREPL server with project dependencies loaded, you can specify the port explicitly:
+**Restart Claude Desktop** to load the MCP server.
 
-```json
-{
-  "mcpServers": {
-    "mcp-nrepl": {
-      "type": "stdio",
-      "command": "bb",
-      "args": ["/Users/yourname/.mcp-servers/mcp-nrepl.bb", "--bridge", "--nrepl-port", "1667"]
-    }
-  }
-}
-```
-
-### 4. Start nREPL and Restart
-
-**If using --server**: Skip this step - the embedded server starts automatically.
-
-**If connecting to external nREPL**: Start an nREPL server in your project:
-```bash
-cd /path/to/your/clojure/project
-lein repl           # Leiningen
-# or: bb nrepl-server   # Babashka
-# or: clj -Sdeps '{:deps {nrepl/nrepl {:mvn/version "1.0.0"}}}' -X nrepl.cmdline/server
-```
-
-This creates a `.nrepl-port` file that mcp-nrepl will use to connect.
-
-Then restart Claude Code or Claude Desktop to load the MCP server.
-
-### 5. Verify It's Working
+### 4. Verify It's Working
 
 Try asking Claude:
 > "Can you evaluate (+ 1 2 3) in my Clojure REPL?"
