@@ -98,7 +98,7 @@ Claude should be able to connect to your nREPL session and execute code.
 
 ---
 
-**For Development**: If you want to contribute or run tests, clone the full repository instead of just downloading the script.
+**For Development**: If you want to contribute or run tests, clone the full repository instead of just downloading the script. For convenient development, you can point Claude directly at the file location in your checkout directory.
 
 ## Quick Start (Development & Testing)
 
