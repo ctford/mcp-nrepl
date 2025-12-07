@@ -110,7 +110,7 @@
           (is (str/includes? output "error")
               "Should return error for missing required fields"))))))
 
-(deftest test-invalid-tool-name
+(deftest test-unknown-tool-request
   (testing "Handles requests for non-existent tools"
     (let [port "7888"
           init-msg (make-init-msg 1)
@@ -119,7 +119,7 @@
           result (run-mcp-with-input port input)
           output (:out result)
           lines (str/split-lines output)]
-      (color-print :green "✓ Invalid tool name test completed")
+      (color-print :green "✓ Unknown tool request test completed")
       ;; Second response should contain error about unknown tool
       (is (> (count lines) 1) "Should get at least 2 responses")
       (let [second-response (json/parse-string (second lines))]
