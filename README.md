@@ -33,7 +33,7 @@ cd ~/.mcp-servers
 curl -O https://raw.githubusercontent.com/ctford/mcp-nrepl/main/mcp-nrepl.bb
 ```
 
-### 3a. Configure Bridge Mode e.g. Claude Code
+### Option one: 3a. Configure Bridge Mode e.g. Claude Code
 
 Create a `.mcp.json` file in your Clojure project root:
 
@@ -64,7 +64,7 @@ This creates a `.nrepl-port` file that mcp-nrepl will use to connect.
 
 **Restart Claude Code** to load the MCP server.
 
-### 3b. Configure Server Mode e.g. Claude Desktop
+### Option two: 3b. Configure Server Mode e.g. Claude Desktop
 
 If you prefer to use Claude Desktop instead, edit your Claude Desktop configuration file:
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
