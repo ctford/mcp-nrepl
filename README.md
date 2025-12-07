@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/ctford/mcp-nrepl/actions/workflows/ci.yml/badge.svg)](https://github.com/ctford/mcp-nrepl/actions/workflows/ci.yml)
 
-This is a minimal, fast Model Context Protocol (MCP) server implementation for nREPL using Babashka. That means your coding assistant can use the REPL like you would.
+This is a minimal, fast [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server implementation for nREPL using Babashka. That means your coding assistant can use the REPL like you would.
 
 **Related Projects**: For more ambitious REPL-driven development experiences, check out Bruce Hauman's [Clojure MCP](https://github.com/bhauman/clojure-mcp) (full-featured MCP with structural editing, linting, and formatting) and [clojure-mcp-light](https://github.com/bhauman/clojure-mcp-light) (CLI tools for paren repair and LLM-friendly output).
 
