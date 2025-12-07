@@ -6,6 +6,18 @@ This is a minimal, fast Model Context Protocol (MCP) server implementation for n
 
 **Related Projects**: For more ambitious REPL-driven development experiences, check out Bruce Hauman's [Clojure MCP](https://github.com/bhauman/clojure-mcp) (full-featured MCP with structural editing, linting, and formatting) and [clojure-mcp-light](https://github.com/bhauman/clojure-mcp-light) (CLI tools for paren repair and LLM-friendly output).
 
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Development](#development)
+- [Testing](#testing)
+- [Protocol Support](#protocol-support)
+- [Security Considerations](#security-considerations)
+- [Built With AI](#built-with-ai)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Features
 
 - **Bridge Mode** (`--bridge`): Connects to an external nREPL server, such as you might get by using `lein repl` in your project
@@ -100,7 +112,7 @@ Claude should be able to connect to your nREPL session and execute code.
 
 **For Development**: If you want to contribute or run tests, clone the full repository instead of just downloading the script. For convenient development, you can point Claude directly at the file location in your checkout directory.
 
-## Quick Start (Development & Testing)
+## Development
 
 This section is for developers who have cloned the repository and want to test mcp-nrepl locally.
 
@@ -148,7 +160,7 @@ Example tool call:
 {"jsonrpc":"2.0","method":"tools/call","params":{"name":"eval-clojure","arguments":{"code":"(+ 1 2 3)"}},"id":2}
 ```
 
-## Development
+## Testing
 
 ### Running Tests
 
