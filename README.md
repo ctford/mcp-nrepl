@@ -184,7 +184,7 @@ git commit --no-verify
 
 ### MCP Methods Implemented
 
-- **initialize**: Protocol handshake and capability negotiation
+- **initialize**: Protocol handshake that establishes nREPL connection
 - **tools/list**: Returns available tools
 - **tools/call**: Executes tool operations
 - **resources/list**: Returns available resources (none implemented)
