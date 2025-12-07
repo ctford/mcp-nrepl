@@ -739,24 +739,28 @@
 (defn usage [options-summary]
   (->> ["mcp-nrepl - MCP server bridge to nREPL"
         ""
-        "Usage: mcp-nrepl.bb [OPTIONS]"
-        "       mcp-nrepl.bb --bridge          # Connect to external nREPL (best practice)"
-        "       mcp-nrepl.bb --server          # Start with embedded nREPL server"
-        "       mcp-nrepl.bb --eval CODE       # Evaluate code"
+        "Usage Examples:"
+        "  mcp-nrepl.bb --bridge                    # MCP server with external nREPL"
+        "  mcp-nrepl.bb --server                    # MCP server with embedded nREPL"
+        "  mcp-nrepl.bb --eval \"(+ 1 2)\"            # Quick eval (uses .nrepl-port)"
+        "  mcp-nrepl.bb --server --eval \"(+ 1 2)\"  # Quick eval with embedded server"
         ""
         "Options:"
         options-summary
         ""
-        "Modes:"
-        "  MCP Server Mode (default): Reads MCP JSON-RPC messages from stdin"
-        "  Connectionless Eval Mode (--eval): Evaluates code and prints result"
+        "Operation Modes:"
+        "  Default: MCP Server Mode - reads JSON-RPC messages from stdin"
+        "  --eval:  Eval Mode - evaluates code, prints result, exits"
         ""
-        "Connection Options:"
-        "  --bridge: Connect to external nREPL server (explicit bridge mode, recommended)"
-        "  --server: Start an embedded nREPL server (no external server needed)"
-        "  --nrepl-port PORT: Specify port for external nREPL server"
+        "Connection Options (can be combined with either operation mode):"
+        "  --bridge:     Connect to external nREPL (recommended for projects)"
+        "  --server:     Start embedded nREPL server (no external server needed)"
+        "  --nrepl-port: Specify port for external server"
+        "  (no flag):    Auto-detect from .nrepl-port file (implicit bridge)"
+        ""
+        "Constraints:"
         "  --bridge and --server are mutually exclusive"
-        "  If no connection option is specified, reads from .nrepl-port file (implicit bridge mode)."]
+        "  --server and --nrepl-port are mutually exclusive"]
        (str/join \newline)))
 
 (defn error-msg [errors]
