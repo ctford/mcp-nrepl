@@ -125,12 +125,6 @@ bb mcp-nrepl.bb --server --eval "(+ 1 2 3)"
 # Output: 6
 ```
 
-**Key advantages:**
-- No MCP configuration needed
-- Perfect for quick REPL experiments
-- Works from any directory
-- Combines with either `--bridge` or `--server`
-
 ### 4. Verify It's Working
 
 Try asking Claude:
