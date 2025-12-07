@@ -10,10 +10,9 @@ This is a minimal, fast Model Context Protocol (MCP) server implementation for n
 
 - [Features](#features)
 - [Installation](#installation)
-- [Development](#development)
-- [Testing](#testing)
 - [Protocol Support](#protocol-support)
 - [Security Considerations](#security-considerations)
+- [Development](#development)
 - [Built With AI](#built-with-ai)
 - [Contributing](#contributing)
 - [License](#license)
@@ -108,90 +107,6 @@ Try asking Claude:
 
 Claude should be able to connect to your nREPL session and execute code.
 
----
-
-**For Development**: If you want to contribute or run tests, clone the full repository instead of just downloading the script. For convenient development, you can point Claude directly at the file location in your checkout directory.
-
-## Development
-
-This section is for developers who have cloned the repository and want to test mcp-nrepl locally.
-
-### 1. Start an nREPL Server
-
-Start a Babashka nREPL server for testing:
-
-```bash
-bb nrepl-server
-```
-
-This will start a Babashka nREPL server and write the port to `.nrepl-port`.
-
-### 2. Connectionless Eval Mode (Fastest)
-
-Evaluate Clojure code directly from the command line:
-
-```bash
-bb mcp-nrepl.bb --eval "(+ 1 2 3)"
-# Output: 6
-
-bb mcp-nrepl.bb -e "(str \"Hello\" \" \" \"World\")"
-# Output: "Hello World"
-```
-
-### 3. MCP Server Mode
-
-Run as an MCP server for AI assistants and other MCP clients:
-
-```bash
-bb mcp-nrepl.bb --bridge
-```
-
-The server will read from stdin and write to stdout using JSON-RPC 2.0 protocol.
-
-Note: `--bridge` is recommended for clarity, but the flag is optional (bridge mode is the default).
-
-Example initialization message:
-```json
-{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{}},"id":1}
-```
-
-Example tool call:
-```json
-{"jsonrpc":"2.0","method":"tools/call","params":{"name":"eval-clojure","arguments":{"code":"(+ 1 2 3)"}},"id":2}
-```
-
-## Testing
-
-### Running Tests
-
-Run the complete test suite (unit + E2E):
-```bash
-./run-tests.sh
-```
-
-The test suite includes:
-- **Unit Tests** (~1 second) - Pure functions with no side effects: MCP handlers, data transformation, error builders
-- **End-to-End Tests** (~5 seconds) - Full integration: MCP protocol, nREPL eval, resources, and connectionless eval mode
-- **Misuse Tests** (~3 seconds) - Error handling: malformed JSON, invalid requests, missing nREPL server, malformed Clojure code
-- **Performance Tests** (~1 second) - Timing validation: connectionless eval mode completes under 200ms threshold
-
-All test suites are written in Babashka for consistency and maintainability.
-
-### Git Hooks
-
-To ensure code quality, install the pre-commit hook that runs tests before each commit:
-
-```bash
-./install-git-hooks.sh
-```
-
-After installation, tests will run automatically before every commit. The hook is version controlled in `.githooks/pre-commit`, so any updates automatically apply without re-installation.
-
-To skip the hook for a specific commit (not recommended):
-```bash
-git commit --no-verify
-```
-
 ## Protocol Support
 
 ### MCP Methods Implemented
@@ -282,6 +197,90 @@ MCP-nREPL provides 12 tools:
 - The nREPL session shares state - one evaluation affects subsequent ones
 
 **This tool is intended for development workflows.** It provides the same level of access you have when typing at a REPL prompt.
+
+---
+
+**For Development**: If you want to contribute or run tests, clone the full repository instead of just downloading the script. For convenient development, you can point Claude directly at the file location in your checkout directory.
+
+## Development
+
+This section is for developers who have cloned the repository and want to test mcp-nrepl locally.
+
+### 1. Start an nREPL Server
+
+Start a Babashka nREPL server for testing:
+
+```bash
+bb nrepl-server
+```
+
+This will start a Babashka nREPL server and write the port to `.nrepl-port`.
+
+### 2. Connectionless Eval Mode (Fastest)
+
+Evaluate Clojure code directly from the command line:
+
+```bash
+bb mcp-nrepl.bb --eval "(+ 1 2 3)"
+# Output: 6
+
+bb mcp-nrepl.bb -e "(str \"Hello\" \" \" \"World\")"
+# Output: "Hello World"
+```
+
+### 3. MCP Server Mode
+
+Run as an MCP server for AI assistants and other MCP clients:
+
+```bash
+bb mcp-nrepl.bb --bridge
+```
+
+The server will read from stdin and write to stdout using JSON-RPC 2.0 protocol.
+
+Note: `--bridge` is recommended for clarity, but the flag is optional (bridge mode is the default).
+
+Example initialization message:
+```json
+{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{}},"id":1}
+```
+
+Example tool call:
+```json
+{"jsonrpc":"2.0","method":"tools/call","params":{"name":"eval-clojure","arguments":{"code":"(+ 1 2 3)"}},"id":2}
+```
+
+### Testing
+
+#### Running Tests
+
+Run the complete test suite (unit + E2E):
+```bash
+./run-tests.sh
+```
+
+The test suite includes:
+- **Unit Tests** (~1 second) - Pure functions with no side effects: MCP handlers, data transformation, error builders
+- **End-to-End Tests** (~5 seconds) - Full integration: MCP protocol, nREPL eval, resources, and connectionless eval mode
+- **Misuse Tests** (~3 seconds) - Error handling: malformed JSON, invalid requests, missing nREPL server, malformed Clojure code
+- **Performance Tests** (~1 second) - Timing validation: connectionless eval mode completes under 200ms threshold
+
+All test suites are written in Babashka for consistency and maintainability.
+
+#### Git Hooks
+
+To ensure code quality, install the pre-commit hook that runs tests before each commit:
+
+```bash
+./install-git-hooks.sh
+```
+
+After installation, tests will run automatically before every commit. The hook is version controlled in `.githooks/pre-commit`, so any updates automatically apply without re-installation.
+
+To skip the hook for a specific commit (not recommended):
+```bash
+git commit --no-verify
+```
 
 ## Built With AI
 
