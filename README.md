@@ -19,9 +19,9 @@ This is a minimal, fast [Model Context Protocol](https://modelcontextprotocol.io
 
 ## Features
 
-- **Bridge Mode** (`--bridge`): Connects to an external nREPL server, such as you might get by using `lein repl` in your project. Use this when you have an existing project with its own dependencies and definitions.
-- **Server Mode** (`--server`): Provides an embedded nREPL server, so you don't need a project to give an AI assistant the ability to execute Clojure. Use this if you are experimenting with Clojure outside the context of a project.
-- **Eval Mode** (`--eval`): One-shot evaluation from the command line, works with either Bridge or Server mode, no MCP configuration needed. Use this to experiment with mcp-nrepl or if you want to give your coding assistant the ability to talk to the REPL via CLI instead of MCP.
+- **Bridge Mode** (`--bridge`): Connects to an external nREPL server, such as you might get by using `lein repl`. Use this when you have an existing project with its own dependencies and definitions.
+- **Server Mode** (`--server`): Provides an embedded nREPL server. Use this if you are experimenting with Clojure outside the context of a project.
+- **Eval Mode** (`--eval`): One-shot evaluation from the command line, works with either Bridge or Server mode. Use this to experiment with MCP-nREPL or if you want to give your coding assistant the ability to talk to the REPL via CLI instead of MCP.
 - **Fast Execution**: ~30ms per evaluation
 
 Use `bb mcp-nrepl.bb --help` to see all command-line options and usage examples.
