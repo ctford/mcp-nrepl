@@ -734,6 +734,7 @@
    ["-b" "--bridge" "Connect to external nREPL server (bridge mode)"]
    ["-s" "--server" "Start embedded nREPL server (no external server needed)"]
    ["-e" "--eval CODE" "Evaluate Clojure code and print result (one-shot eval mode)"]
+   ["-d" "--describe" "Show available tools, prompts, and resources"]
    ["-h" "--help" "Show this help message"]])
 
 (defn usage [options-summary]
@@ -767,11 +768,78 @@
   (str "The following errors occurred while parsing your command:\n\n"
        (str/join \newline errors)))
 
+(defn format-tool-params [tool]
+  "Format tool parameters for display"
+  (let [schema (get tool "inputSchema")
+        properties (get schema "properties")
+        required-params (set (get schema "required" []))]
+    (if (empty? properties)
+      "    (no parameters)"
+      (str/join "\n"
+                (for [[param-name param-info] properties]
+                  (let [type-str (get param-info "type")
+                        desc (get param-info "description")
+                        required? (contains? required-params param-name)
+                        req-str (if required? "required" "optional")]
+                    (str "    - " param-name " (" type-str ", " req-str "): " desc)))))))
+
+(defn format-prompt-args [prompt]
+  "Format prompt arguments for display"
+  (let [arguments (get prompt "arguments" [])]
+    (if (empty? arguments)
+      "    (no arguments)"
+      (str/join "\n"
+                (for [arg arguments]
+                  (let [name (get arg "name")
+                        desc (get arg "description")
+                        required? (get arg "required")
+                        req-str (if required? "required" "optional")]
+                    (str "    - " name " (" req-str "): " desc)))))))
+
+(defn run-describe-mode []
+  "Display MCP capabilities in human-readable format with full schemas"
+  (let [tools-data (handle-tools-list)
+        prompts-data (handle-prompts-list)
+        resources-data (handle-resources-list)
+
+        tools (get tools-data "tools")
+        prompts (get prompts-data "prompts")
+        resources (get resources-data "resources")]
+
+    ;; Print Tools
+    (println "Tools:")
+    (doseq [tool tools]
+      (println (str "\n  " (get tool "name")))
+      (println (str "    " (get tool "description")))
+      (println "  Parameters:")
+      (println (format-tool-params tool)))
+    (println)
+
+    ;; Print Prompts
+    (println "Prompts:")
+    (doseq [prompt prompts]
+      (println (str "\n  " (get prompt "name")))
+      (println (str "    " (get prompt "description")))
+      (println "  Arguments:")
+      (println (format-prompt-args prompt)))
+    (println)
+
+    ;; Print Resources
+    (println "Resources:")
+    (if (empty? resources)
+      (println "  (none)")
+      (doseq [resource resources]
+        (println (str "\n  " (get resource "name")))
+        (println (str "    " (get resource "description")))))))
+
 (defn validate-args [args]
   (let [{:keys [options arguments errors summary]} (cli/parse-opts args cli-options)]
     (cond
       (:help options)
       {:exit-message (usage summary) :ok? true}
+
+      (:describe options)
+      {:describe true :ok? true}
 
       errors
       {:exit-message (error-msg errors)}
@@ -799,12 +867,16 @@
       (System/exit 1))))
 
 (defn main [& args]
-  (let [{:keys [options exit-message ok?]} (validate-args args)]
+  (let [{:keys [options exit-message ok? describe]} (validate-args args)]
     (if exit-message
       (do
         (println exit-message)
         (System/exit (if ok? 0 1)))
-      (try
+      (if describe
+        (do
+          (run-describe-mode)
+          (System/exit 0))
+        (try
         ;; Start embedded nREPL server if --server option is provided
         (when (:server options)
           (let [server (nrepl-server/start-server! {:host "localhost" :port 0 :quiet true})
@@ -851,7 +923,7 @@
           (when-let [out (:nrepl-output-stream @state)]
             (try
               (.close out)
-              (catch Exception _))))))))
+              (catch Exception _)))))))))
 
 ;; Entry point
 (when (= *file* (System/getProperty "babashka.file"))
