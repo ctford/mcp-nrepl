@@ -9,6 +9,7 @@ This is a minimal, fast [Model Context Protocol](https://modelcontextprotocol.io
 ## Table of Contents
 
 - [Features](#features)
+- [Example Usage](#example-usage)
 - [Installation](#installation)
 - [Protocol Support](#protocol-support)
 - [Security Considerations](#security-considerations)
@@ -25,6 +26,99 @@ This is a minimal, fast [Model Context Protocol](https://modelcontextprotocol.io
 - **Fast Execution**: ~30ms per evaluation
 
 Use `bb mcp-nrepl.bb --help` to see all command-line options and usage examples.
+
+## Example Usage
+
+**User:** Find me the millionth prime.
+
+**Claude:** I'll use the Clojure REPL to calculate the millionth prime number.
+
+🔧 *Uses eval-clojure tool:*
+
+```clojure
+(defn prime? [n]
+  (and (> n 1)
+       (not-any? #(zero? (mod n %))
+                 (range 2 (inc (int (Math/sqrt n)))))))
+
+(defn primes []
+  (filter prime? (iterate inc 2)))
+
+(nth (primes) (dec 1000000))
+```
+
+```
+Error: Evaluation timed out after 2000ms
+```
+
+**Claude:** The naive approach timed out. Let me use a more efficient Sieve of Eratosthenes approach.
+
+🔧 *Uses eval-clojure tool:*
+
+```clojure
+(defn sieve [n]
+  (let [limit (int (* n (Math/log n) 1.3))
+        candidates (boolean-array limit true)]
+    (loop [p 2 primes []]
+      (if (>= (count primes) n)
+        (nth primes (dec n))
+        (do
+          (when (aget candidates p)
+            (loop [multiple (* p p)]
+              (when (< multiple limit)
+                (aset candidates multiple false)
+                (recur (+ multiple p)))))
+          (recur (inc p) (if (aget candidates p) (conj primes p) primes)))))))
+
+(time (sieve 1000000))
+```
+
+```
+"Elapsed time: 1847.3 msecs"
+15485863
+```
+
+**User:** Could you simplify that with doseq?
+
+**Claude:** Good idea! Let me check the documentation for doseq first.
+
+🔧 *Uses doc tool:*
+
+```clojure
+doseq
+```
+
+```
+clojure.core/doseq
+([seq-exprs & body])
+  Repeatedly executes body (presumably for side-effects) with
+  bindings and filtering as provided by "for".  Does not retain
+  the head of the sequence. Returns nil.
+```
+
+**Claude:** Perfect! I can use doseq for the side effects of marking composites, and filter to find the result.
+
+🔧 *Uses eval-clojure tool:*
+
+```clojure
+(defn sieve [n]
+  (let [limit (int (* n (Math/log n) 1.3))
+        candidates (boolean-array limit true)]
+    (doseq [p (range 2 limit)
+            :when (aget candidates p)]
+      (doseq [multiple (range (* p p) limit p)]
+        (aset candidates multiple false)))
+    (nth (filter #(aget candidates %) (range 2 limit)) (dec n))))
+
+(time (sieve 1000000))
+```
+
+```
+"Elapsed time: 1842.1 msecs"
+15485863
+```
+
+**Claude:** The millionth prime number is 15,485,863.
 
 ## Installation
 
