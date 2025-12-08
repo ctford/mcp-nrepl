@@ -24,6 +24,8 @@ This is a minimal, fast [Model Context Protocol](https://modelcontextprotocol.io
 - **Eval Mode** (`--eval`): One-shot evaluation from the command line, works with either Bridge or Server mode, no MCP configuration needed
 - **Fast Execution**: ~30ms per evaluation
 
+Use `bb mcp-nrepl.bb --help` to see all command-line options and usage examples.
+
 ## Installation
 
 For now, MCP-nREPL is distributed as a single, unversioned Babashka script with zero dependencies (outside of what Babashka already provides). You should be able to understand it, hack it, copy it around and check it into your dotfiles repo.
@@ -143,6 +145,8 @@ Claude should be able to connect to your nREPL session and execute code.
 - **prompts/get**: Retrieves a specific prompt with its messages
 - **resources/list**: Returns available resources (none implemented)
 - **resources/read**: Reads resource data (not applicable)
+
+Use `bb mcp-nrepl.bb --describe` to see all tools, prompts, and resources with their complete parameter schemas without needing to set up MCP.
 
 ### Available Tools
 
