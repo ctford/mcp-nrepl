@@ -303,108 +303,17 @@
            (mcp-nrepl/build-macroexpand-1-code "(-> x (+ 1) (* 2))")))))
 
 ;; Test prompts handlers
-(deftest handle-prompts-list-returns-all-prompts
-  (testing "Returns all 5 prompts with correct structure"
+(deftest handle-prompts-list-returns-empty
+  (testing "Returns empty prompts list"
     (let [result (mcp-nrepl/handle-prompts-list)
           prompts (get result "prompts")]
-      (is (= 5 (count prompts)))
-      (is (every? #(contains? % "name") prompts))
-      (is (every? #(contains? % "description") prompts))
-      (is (every? #(contains? % "arguments") prompts))))
+      (is (= 0 (count prompts)))
+      (is (vector? prompts)))))
 
-  (testing "Prompt names are correct"
-    (let [result (mcp-nrepl/handle-prompts-list)
-          prompt-names (set (map #(get % "name") (get result "prompts")))]
-      (is (contains? prompt-names "explore-namespace"))
-      (is (contains? prompt-names "define-and-test"))
-      (is (contains? prompt-names "load-and-explore"))
-      (is (contains? prompt-names "debug-error"))
-      (is (contains? prompt-names "search-and-learn"))))
-
-  (testing "explore-namespace has no required arguments"
-    (let [result (mcp-nrepl/handle-prompts-list)
-          explore-prompt (first (filter #(= "explore-namespace" (get % "name"))
-                                        (get result "prompts")))]
-      (is (empty? (get explore-prompt "arguments")))))
-
-  (testing "define-and-test has two required arguments"
-    (let [result (mcp-nrepl/handle-prompts-list)
-          define-prompt (first (filter #(= "define-and-test" (get % "name"))
-                                       (get result "prompts")))
-          args (get define-prompt "arguments")]
-      (is (= 2 (count args)))
-      (is (every? #(get % "required") args)))))
-
-(deftest handle-prompts-get-returns-proper-messages
-  (testing "explore-namespace returns message with proper structure"
-    (let [result (mcp-nrepl/handle-prompts-get {"name" "explore-namespace"})
-          messages (get result "messages")]
-      (is (= 1 (count messages)))
-      (is (= "user" (get-in messages [0 "role"])))
-      (is (= "text" (get-in messages [0 "content" "type"])))
-      (is (string? (get-in messages [0 "content" "text"])))
-      (is (str/includes? (get-in messages [0 "content" "text"])
-                         "current-namespace tool"))))
-
-  (testing "define-and-test interpolates arguments correctly"
-    (let [result (mcp-nrepl/handle-prompts-get
-                   {"name" "define-and-test"
-                    "arguments" {"function-name" "square"
-                                 "function-code" "(defn square [x] (* x x))"}})
-          message-text (get-in result ["messages" 0 "content" "text"])]
-      (is (str/includes? message-text "square"))
-      (is (str/includes? message-text "(defn square [x] (* x x))"))))
-
-  (testing "load-and-explore interpolates file-path"
-    (let [result (mcp-nrepl/handle-prompts-get
-                   {"name" "load-and-explore"
-                    "arguments" {"file-path" "src/my_file.clj"}})
-          message-text (get-in result ["messages" 0 "content" "text"])]
-      (is (str/includes? message-text "src/my_file.clj"))))
-
-  (testing "search-and-learn interpolates search-term"
-    (let [result (mcp-nrepl/handle-prompts-get
-                   {"name" "search-and-learn"
-                    "arguments" {"search-term" "map"}})
-          message-text (get-in result ["messages" 0 "content" "text"])]
-      (is (str/includes? message-text "map"))
-      (is (str/includes? message-text "the apropos tool")))))
-
-(deftest handle-prompts-get-validates-required-arguments
-  (testing "define-and-test throws when function-name missing"
-    (is (thrown-with-msg? Exception #"Missing required argument: function-name"
-          (mcp-nrepl/handle-prompts-get
-            {"name" "define-and-test"
-             "arguments" {"function-code" "(defn foo [] 42)"}}))))
-
-  (testing "define-and-test throws when function-code missing"
-    (is (thrown-with-msg? Exception #"Missing required argument: function-code"
-          (mcp-nrepl/handle-prompts-get
-            {"name" "define-and-test"
-             "arguments" {"function-name" "foo"}}))))
-
-  (testing "load-and-explore throws when file-path missing"
-    (is (thrown-with-msg? Exception #"Missing required argument: file-path"
-          (mcp-nrepl/handle-prompts-get
-            {"name" "load-and-explore"
-             "arguments" {}}))))
-
-  (testing "debug-error throws when error-code missing"
-    (is (thrown-with-msg? Exception #"Missing required argument: error-code"
-          (mcp-nrepl/handle-prompts-get
-            {"name" "debug-error"
-             "arguments" {}}))))
-
-  (testing "search-and-learn throws when search-term missing"
-    (is (thrown-with-msg? Exception #"Missing required argument: search-term"
-          (mcp-nrepl/handle-prompts-get
-            {"name" "search-and-learn"
-             "arguments" {}})))))
-
-(deftest handle-prompts-get-rejects-unknown-prompts
-  (testing "Throws exception for unknown prompt name"
-    (is (thrown-with-msg? Exception #"Unknown prompt: nonexistent"
-          (mcp-nrepl/handle-prompts-get {"name" "nonexistent"})))))
+(deftest handle-prompts-get-returns-error
+  (testing "Throws exception when prompts are not available"
+    (is (thrown-with-msg? Exception #"No prompts are available"
+          (mcp-nrepl/handle-prompts-get {"name" "any-prompt"})))))
 
 ;; Test CLI argument validation
 (deftest validate-args-handles-bridge-flag
