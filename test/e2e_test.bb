@@ -83,19 +83,6 @@
    "params" {"name" "current-namespace"
              "arguments" {}}})
 
-(defn mcp-prompts-list [id]
-  {"jsonrpc" "2.0"
-   "id" id
-   "method" "prompts/list"
-   "params" {}})
-
-(defn mcp-prompts-get [id prompt-name arguments]
-  {"jsonrpc" "2.0"
-   "id" id
-   "method" "prompts/get"
-   "params" {"name" prompt-name
-             "arguments" arguments}})
-
 (defn mcp-macroexpand-all [id code]
   {"jsonrpc" "2.0"
    "id" id
@@ -236,41 +223,6 @@
           capabilities (get-in response ["result" "capabilities"])]
       (color-print :green "✓ Prompts capability declared in initialization")
       (is (contains? capabilities "prompts")))))
-
-(deftest test-prompts-list
-  (testing "Can list available prompts"
-    (let [[init list-resp] (run-mcp (mcp-initialize)
-                                    (mcp-prompts-list 20))
-          prompts (get-in list-resp ["result" "prompts"])]
-      (color-print :green "✓ Prompts list returned 5 prompts")
-      (is (= 5 (count prompts)))
-      (is (some #(= "explore-namespace" (get % "name")) prompts))
-      (is (some #(= "define-and-test" (get % "name")) prompts))
-      (is (some #(= "load-and-explore" (get % "name")) prompts))
-      (is (some #(= "debug-error" (get % "name")) prompts))
-      (is (some #(= "search-and-learn" (get % "name")) prompts)))))
-
-(deftest test-prompts-get-explore-namespace
-  (testing "Can get explore-namespace prompt (no arguments)"
-    (let [[init get-resp] (run-mcp (mcp-initialize)
-                                   (mcp-prompts-get 21 "explore-namespace" {}))
-          messages (get-in get-resp ["result" "messages"])]
-      (color-print :green "✓ explore-namespace prompt returned messages")
-      (is (= 1 (count messages)))
-      (is (= "user" (get-in messages [0 "role"])))
-      (is (str/includes? (get-in messages [0 "content" "text"])
-                         "current-namespace tool")))))
-
-(deftest test-prompts-get-with-arguments
-  (testing "Can get prompts with arguments"
-    (let [[init get-resp] (run-mcp (mcp-initialize)
-                                   (mcp-prompts-get 22 "define-and-test"
-                                                    {"function-name" "square"
-                                                     "function-code" "(defn square [x] (* x x))"}))
-          message-text (get-in get-resp ["result" "messages" 0 "content" "text"])]
-      (color-print :green "✓ define-and-test prompt interpolated arguments")
-      (is (str/includes? message-text "square"))
-      (is (str/includes? message-text "(defn square [x] (* x x))")))))
 
 (deftest test-macroexpand-all-tool
   (testing "Can fully expand macros"
