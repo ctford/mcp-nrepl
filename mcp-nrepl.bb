@@ -1,3 +1,4 @@
+#!/usr/bin/env bb
 (ns mcp-nrepl
   (:require [babashka.fs :as fs]
             [babashka.nrepl.server :as nrepl-server]
