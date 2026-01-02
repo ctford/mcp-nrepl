@@ -122,13 +122,30 @@ clojure.core/doseq
 
 ## Installation
 
-For now, MCP-nREPL is distributed as a single, unversioned Babashka script with zero dependencies (outside of what Babashka already provides). You should be able to understand it, hack it, copy it around and check it into your dotfiles repo.
+MCP-nREPL is distributed as a single Babashka script with zero dependencies (outside of what Babashka already provides). You can install it via Homebrew (macOS/Linux) or download it manually. Either way, you should be able to understand it, hack it, copy it around, and check it into your dotfiles repo.
 
 ### 1. Prerequisites
 
 - **Babashka**: Install via `brew install borkdude/brew/babashka` (macOS) or see [babashka.org](https://babashka.org/) for other platforms
 
-### 2. Download mcp-nrepl.bb
+### 2. Install MCP-nREPL
+
+Choose one of the installation methods below:
+
+#### Option A: Homebrew (macOS/Linux)
+
+If you're using macOS or Linux and prefer package management:
+
+```bash
+brew install ctford/tap/mcp-nrepl
+```
+
+Then reference it in your MCP configuration (see section 3) as:
+```json
+"command": "mcp-nrepl"
+```
+
+#### Option B: Manual Download
 
 Download the script to a permanent location:
 
@@ -141,22 +158,42 @@ cd ~/.mcp-servers
 curl -O https://raw.githubusercontent.com/ctford/mcp-nrepl/main/mcp-nrepl.bb
 ```
 
+Then reference it in your MCP configuration (see section 3) as:
+```json
+"args": ["/absolute/path/to/.mcp-servers/mcp-nrepl.bb", "--bridge"]
+```
+(Replace `/absolute/path` with your actual home directory path)
+
 ### 3a. Option one: Configure Bridge Mode e.g. Claude Code
 
 Create a `.mcp.json` file in your Clojure project root:
 
+**If using Homebrew:**
+```json
+{
+  "mcpServers": {
+    "mcp-nrepl": {
+      "type": "stdio",
+      "command": "mcp-nrepl",
+      "args": ["--bridge"]
+    }
+  }
+}
+```
+
+**If using manual download:**
 ```json
 {
   "mcpServers": {
     "mcp-nrepl": {
       "type": "stdio",
       "command": "bb",
-      "args": ["/Users/yourname/.mcp-servers/mcp-nrepl.bb", "--bridge"],
-      "_comment": "Replace /Users/yourname with your actual home directory path"
+      "args": ["/absolute/path/to/.mcp-servers/mcp-nrepl.bb", "--bridge"]
     }
   }
 }
 ```
+(Replace `/absolute/path` with your actual home directory path)
 
 Note: The working directory is your project root, so `.nrepl-port` is automatically discovered (no need for `--nrepl-port` in typical workflows).
 
@@ -180,18 +217,32 @@ If you prefer to use Claude Desktop instead, edit your Claude Desktop configurat
 
 Add the mcp-nrepl server with embedded server mode:
 
+**If using Homebrew:**
+```json
+{
+  "mcpServers": {
+    "mcp-nrepl": {
+      "type": "stdio",
+      "command": "mcp-nrepl",
+      "args": ["--server"]
+    }
+  }
+}
+```
+
+**If using manual download:**
 ```json
 {
   "mcpServers": {
     "mcp-nrepl": {
       "type": "stdio",
       "command": "bb",
-      "args": ["/Users/yourname/.mcp-servers/mcp-nrepl.bb", "--server"],
-      "_comment": "Replace /Users/yourname with your actual home directory path"
+      "args": ["/absolute/path/to/.mcp-servers/mcp-nrepl.bb", "--server"]
     }
   }
 }
 ```
+(Replace `/absolute/path` with your actual home directory path)
 
 Note: `"type": "stdio"` is optional (stdio is the default) but included for clarity.
 
